@@ -10,7 +10,6 @@ RUN --mount=type=tmpfs,target=/tmp uv sync --locked --no-cache
 COPY tests ./tests
 COPY deploy ./deploy
 COPY compose.yaml ./compose.yaml
-COPY docs/plans/evidence/releem-openapi-2026-11-11.json ./docs/plans/evidence/
 COPY tools/release ./tools/release
 COPY tools/containers ./tools/containers
 ENV PATH="/opt/venv/bin:$PATH"

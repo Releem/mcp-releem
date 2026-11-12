@@ -6,9 +6,9 @@ The user authorized implementation on 2026-11-10. The first local stdio slice
 implements server discovery, health/security findings, recommendations, read-only
 query evidence, configuration state/history, bounded metric series/comparisons,
 stored events/deadlocks/captures/task outcomes, opt-in schema findings,
-four static diagnostic prompts and releem://reference. Read
-`docs/plans/2026-11-10-mcp-releem.md`, `api-coverage.md` and `source-register.md`
-in the same directory before implementation. The old `src/dbharness` change
+four static diagnostic prompts and releem://reference. Read `README.md`, the
+closed registry in `src/mcp_releem/api/operations.py` and the retained public
+contracts in `tests/fixtures/openapi/` before implementation. The old `src/dbharness` change
 execution harness is removed; do not restore its execution or bearer-token
 forwarding behavior into this project by default.
 
@@ -16,7 +16,7 @@ Implementation authorization does not authorize publishing, deployment,
 writes or database operations. The user separately authorized bounded API GET
 checks using RELEEM_SECRET_KEY in .env; never print it or retain customer payloads.
 Shared authenticated HTTP now uses the hosted profile with per-request existing
-Releem API keys and no global customer credential. See docs/hosted-pilot.md.
+Releem API keys and no global customer credential. See README.md for hosted setup.
 No deployed HTTPS/client onboarding or production tenant-isolation claim is authorized.
 The user confirmed `https://api2.dev.releem.com` as the API base URL on
 2026-11-10; use it as the default with an administrator-controlled override.
@@ -48,14 +48,14 @@ Recommendation fleet lists require explicit scope=fleet and accessible inventory
 validation using the same credential. Server detail histories are bounded;
 opaque review JSON/input snapshots, actor IDs/reasons and pointers remain omitted.
 Evidence references map only canonical same-server paths to typed tool arguments;
-never fetch or expose raw evidence URLs. Client setup receipts are in docs/clients/;
+never fetch or expose raw evidence URLs. Client setup guidance is in README.md;
 do not change existing user/client configuration during tests.
 
 ## Containers and checks
 
 Hosted operation uses root compose.yaml; deploy/hosted.env.example contains only
 administrator placeholders. Never forward customer .env/token sources into it.
-See docs/compose-hosting.md. Release checks include an isolated temporary Compose
+See README.md. Release checks include an isolated temporary Compose
 lifecycle smoke; clean up only that project, never unrelated containers/networks.
 
 
@@ -100,4 +100,9 @@ tools/containers/runtime_base.py removes unused SQLite library/stdlib binding vi
 real APK dependency management; preserve APK metadata and all non-SQLite SO
 requirements. Keep SQLite in dev/check/build stages for mypy caches; ship only
 the trimmed runtime/hosted images. Fixed stable krb5/zlib versions; never use edge repos or CVE
-suppression to obtain a clean scan. See docs/decisions/0003-hardened-runtime.md.
+suppression to obtain a clean scan. Removal logic is in tools/containers/runtime_base.py.
+
+The docs/ directory contains local planning and investigation notes and is ignored
+and untracked. Keep public setup/operations instructions in README.md. Required
+OpenAPI contract captures belong in tests/fixtures/openapi/; do not remove them
+when cleaning local documentation or generated artifacts.

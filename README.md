@@ -4,7 +4,6 @@ Read-only Releem database diagnostics for MCP clients. Run locally with stdio or
 as a shared authenticated HTTP service. This is a developer preview.
 
 Start with the [hosted setup below](#hosted-setup).
-For other clients or transports, see [client setup](docs/clients/local-setup.md).
 To run your own local container, see [local HTTP setup](#local-http-setup-with-codex-and-the-real-api).
 
 ## Hosted setup
@@ -83,9 +82,35 @@ API contract changes introduced after the retained 2026-11-11 baseline.
 The current managed host is `ubuntu@40.160.8.37`. Its `mcp-releem` Compose stack
 contains `mcp` and the optional `cloudflared` connector. The backend is bound to
 loopback; Cloudflare reaches `http://mcp:8000` over the private Docker network.
-See the [server and tunnel runbook](docs/github-deployment.md) for one-time setup,
-token replacement, domain routing and rollback. Those host commands assume the
-managed server layout has already been provisioned.
+The following commands assume the managed server layout has already been
+provisioned. To enable the connector, create a Cloudflared tunnel in Cloudflare
+and run the installed helper from an interactive terminal:
+
+```sh
+ssh -t ubuntu@40.160.8.37 \
+  'sudo bash /opt/mcp-releem/setup/start-tunnel.sh --dry-run'
+ssh -t ubuntu@40.160.8.37 \
+  'sudo bash /opt/mcp-releem/setup/start-tunnel.sh --apply'
+```
+
+Paste only the tunnel token at the hidden prompt. The helper protects it in
+`/opt/mcp-releem/secrets/tunnel-token` and enables the optional Compose profile.
+Configure a published route matching `mcp.releem.com`, with no path restriction,
+service `http://mcp:8000` and HTTP Host header `mcp.releem.com`. If DNS remains on
+Route53, use Cloudflare for SaaS custom-hostname validation and an active
+tunnel-backed fallback origin; a CNAME alone does not provision custom-hostname TLS.
+Preserve Authorization and streaming, and disable browser challenges/caching for
+the MCP endpoint. Confirm the public connectivity checks above before deploying.
+
+To replace an incorrect token, run on the server:
+
+```sh
+sudo /opt/mcp-releem/stack --profile tunnel rm --stop --force cloudflared
+sudo rm -f /opt/mcp-releem/secrets/tunnel-token
+sudo bash /opt/mcp-releem/setup/start-tunnel.sh --apply
+```
+
+Configure GitHub deployment:
 
 1. In **Releem/mcp-releem → Settings → Environments**, create `production`
    and restrict deployments to the repository's default branch.
@@ -96,6 +121,11 @@ managed server layout has already been provisioned.
    |---|---|
    | `DEPLOY_SSH_KEY` | `.agent/deploy/github_ed25519` — dedicated automation private key |
    | `DEPLOY_KNOWN_HOSTS` | `.agent/deploy/known_hosts` — verified full host-key entry |
+
+   `DEPLOY_KNOWN_HOSTS` must contain the complete known_hosts line, not its
+   fingerprint or filename. Confirm it with `ssh-keygen -lf .agent/deploy/known_hosts`;
+   the trusted ED25519 fingerprint for this host is
+   `SHA256:vUhcic9+BnLGbikRaBg0ocgyPa5ixjmyIyYmOJ5wN7A`.
 
    With an authenticated GitHub CLI, run from this checkout after creating the
    environment; the file contents are sent directly to GitHub secrets:
@@ -112,6 +142,10 @@ managed server layout has already been provisioned.
    The workflow uses GitHub's ephemeral `GITHUB_TOKEN` for GHCR. Confirm the
    organization allows this repository to publish its package. Releem customer
    keys and the Cloudflare tunnel token are not deployment secrets in GitHub.
+   For an existing `releem-mcp-server` package, grant `Releem/mcp-releem` Write
+   or Admin under the package's **Manage Actions access**. The source label must
+   identify `https://github.com/Releem/mcp-releem`; the registry package name
+   remains `ghcr.io/releem/releem-mcp-server`.
 3. Review, commit and merge the application, deployment files and
    [workflow](.github/workflows/deploy.yml) into the default branch. The local
    implementation must be published along with the workflow.
@@ -145,11 +179,22 @@ ssh ubuntu@40.160.8.37 'sudo /opt/mcp-releem/stack ps'
 ssh ubuntu@40.160.8.37 'sudo /opt/mcp-releem/stack logs --tail 30 mcp cloudflared'
 ```
 
+The deployment helper checks local/public health and authentication denial and
+attempts to recover the previous application release on failure. Cloudflare
+settings are managed separately. To roll back manually, inspect the previous
+release first, then run on the server with its actual immutable image reference:
+
+```sh
+sudo sh /opt/mcp-releem/setup/activate.sh --dry-run \
+  '<PREVIOUS_IMAGE_DIGEST>' /opt/mcp-releem/previous/compose.yaml
+sudo sh /opt/mcp-releem/setup/activate.sh --apply \
+  '<PREVIOUS_IMAGE_DIGEST>' /opt/mcp-releem/previous/compose.yaml
+```
+
 ## Local HTTP setup with Codex and the real API
 
 Requires Docker running, Docker Compose with `up --wait`, and **Codex CLI**.
-Run the commands below from this checkout's root. This connects to the real API;
-[synthetic demo instructions](docs/local-testing.md) are separate.
+Run the commands below from this checkout's root. This connects to the real API.
 
 Save your key in Codex's private configuration. Codex sends it with each request;
 MCP validates it and uses it to authenticate authorized Releem API reads.
@@ -247,7 +292,7 @@ docker compose --env-file /dev/null -p releem-local-http down
 ```
 
 After changing server settings or rebuilding, run the `up` command again;
-`restart` does not apply new configuration. See [Compose operations](docs/compose-hosting.md)
+`restart` does not apply new configuration. See [deployment operations](#deploy-the-hosted-server-and-enable-github-deployment)
 for remote hosting, pinned releases and rollback.
 
 ### Troubleshooting
@@ -271,7 +316,7 @@ Expected: `{"status":"alive"}`. This checks the MCP process, not upstream access
 
 The Codex configuration was parsed with CLI 0.167.0 on 2026-11-11; loopback
 liveness and unauthenticated 401 were checked without customer API calls.
-See [client setup and verification limits](docs/clients/local-setup.md).
+Interactive client tool, prompt and resource support requires separate verification.
 
 ## Tools
 
@@ -333,7 +378,8 @@ shared JSON. Environment inheritance/secret-file access differs by client;
 Claude Code 2.1.70 registration/connection health passed in an isolated project
 with a synthetic key and network-disabled server. Interactive tool/prompt use and
 Cursor application onboarding remain unverified. Package tests verify both MCP
-protocol revisions. See [client setup and verification](docs/clients/local-setup.md).
+protocol revisions. Interactive client tool, prompt and resource support remains
+separately unverified.
 
 The local MCP process calls the configured Releem API. Its results reach the
 MCP host and may reach that host's model provider; local installation does not
@@ -506,7 +552,7 @@ times are normalized to UTC with a `source_timezone_utc` warning; caller inputs
 still require offsets. A bounded live series check passed using aligned
 five-minute boundaries. Upstream interval bucket anchoring remains unspecified:
 out-of-window samples fail explicitly. Use explicit aligned windows for grouped
-reads. See [the live check receipt](docs/api-checks-2026-11-11.md).
+reads.
 
 Placeholder calls:
 
@@ -584,14 +630,16 @@ instructions should pin the built image digest rather than a floating tag.
 Shared authenticated HTTP is available through `--transport streamable-http`
 with `RELEEM_MCP_PROFILE=hosted` and an explicit HTTPS public URL. It uses the same
 customer API key on each request; global customer credentials are forbidden.
-See [hosted pilot setup and boundaries](docs/hosted-pilot.md). Use [Docker Compose](docs/compose-hosting.md)
-for host start/restart, health checks and rollback. This is an
+Use the [hosted setup](#hosted-setup) and
+[deployment operations](#deploy-the-hosted-server-and-enable-github-deployment)
+for host start/restart, health checks and rollback. This is a
 developer preview; public health and authentication denial were reported passing
 on the managed deployment. Authenticated client onboarding, reboot recovery and
 release approval remain open.
 
 Run `bash scripts/check-release.sh` for offline container verification and a
-checksummed local candidate bundle. See [v0.1.0 gates](docs/releases/0.1.0.md).
+checksummed local candidate bundle. Authenticated client, deployed isolation,
+revocation, streaming and real reboot verification remain release gates.
 
 ## Configuration and result semantics
 
@@ -635,6 +683,13 @@ authenticated HTTP journeys and one isolated Compose recovery smoke. Set
 Transport tests share the release synthetic fixtures. The separate Phase 0 SDK
 experiment and duplicate HTTP handshake tests were retired; authentication,
 tenant isolation, read-only enforcement and deployment recovery remain covered.
+Stdio contract tests use a bounded 15-second request budget to tolerate CPU
+contention on self-hosted runners; they do not establish a 5-second latency guarantee.
+
+Local planning/investigation notes in `docs/` are ignored and untracked. The two
+public OpenAPI captures required by tests and release provenance are versioned
+under [tests/fixtures/openapi](tests/fixtures/openapi). Python build outputs,
+coverage reports, caches, credentials and `.agent/` stay out of Git.
 
 All dependency installation/checks should run in containers. The base image is
 pinned by digest, uv is pinned and dependencies are locked in `uv.lock`.
@@ -662,18 +717,14 @@ HTTP 401/403/422/429 are distinct failures, never successful empty findings.
 
 ## Architecture and remaining work
 
-- [Implementation status and verification](docs/implementation-status.md)
-- [Architecture and phased plan](docs/plans/2026-11-10-mcp-releem.md)
-- [Complete API coverage matrix](docs/plans/api-coverage.md) — planned full scope,
-  broader than the currently implemented tools
-- [Source register](docs/plans/source-register.md)
-- [SDK/client compatibility scope](docs/clients/compatibility.md)
-- [Historical Phase 0 results](docs/phase0-status.md)
+- [Closed GET-only API registry](src/mcp_releem/api/operations.py) — 26 allowed reads.
+- [Hosted authentication boundary](src/mcp_releem/hosted/app.py).
+- [Modern/legacy transport contract checks](tests/test_transports.py).
 
 Remaining work includes stronger engine-aware data policies, full client application
 onboarding and deployed streaming/revocation/isolation verification. API roles, agent/engine
 compatibility remain unverified across deployments. Bounded live checks were
-authorized and performed for this account; see [API check scope](docs/api-checks-2026-11-10.md).
+authorized and performed for this account; they do not certify every API role or deployment.
 Publishing and broader live testing require separate authorization; deployment
 to the current managed host was separately authorized.
 
@@ -684,8 +735,9 @@ and bearer-token forwarding behavior are not inherited.
 Release security: `RELEEM_RELEASE_SECURITY=true bash scripts/check-release.sh`
 also audits exact runtime dependencies/image against public advisory services.
 It requires network access and fails on incomplete coverage or HIGH/CRITICAL
-image findings. See [current security/local-client review](docs/releases/security-review-2026-11-11.md).
+image findings. Offline checks alone do not establish a passing security audit.
 
 Docker runtime security: the image now uses digest-pinned Python3.12/Alpine3.24,
 with fixed stable OS packages. Its unused SQLite library and Python bindings are
-removed; customer Python installations are unaffected. See [runtime decision](docs/decisions/0003-hardened-runtime.md).
+removed; customer Python installations are unaffected. The removal helper is
+[tools/containers/runtime_base.py](tools/containers/runtime_base.py).

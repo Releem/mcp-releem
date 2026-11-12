@@ -14,7 +14,3 @@
 !tools/release/**
 !tools/containers/
 !tools/containers/**
-!docs/
-!docs/plans/
-!docs/plans/evidence/
-!docs/plans/evidence/releem-openapi-2026-11-11.json

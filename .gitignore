@@ -1,5 +1,6 @@
 .env
 .env.*
+docs/
 !.env.example
 .venv/
 __pycache__/
@@ -10,4 +11,9 @@ dist/
 .agent/
 .DS_Store
 deploy/hosted.env
-docs/
+build/
+*.egg-info/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

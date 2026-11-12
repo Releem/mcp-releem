@@ -9,10 +9,12 @@ from mcp.client.stdio import StdioServerParameters
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tools/release/synthetic_stdio.py"
+# Contract checks must tolerate CPU contention on shared self-hosted runners.
+READ_TIMEOUT_SECONDS = 15
 
 
 async def exercise(target, mode):
-    async with Client(target, mode=mode, read_timeout_seconds=5) as client:
+    async with Client(target, mode=mode, read_timeout_seconds=READ_TIMEOUT_SECONDS) as client:
         tools = await client.list_tools()
         assert len(tools.tools) == 10
         assert len((await client.list_prompts()).prompts) == 4
@@ -81,7 +83,9 @@ def test_actual_cli_discovery_without_api_calls(mode):
                 "PYTHONPATH": str(ROOT / "src"),
             },
         )
-        async with Client(parameters, mode=mode, read_timeout_seconds=5) as client:
+        async with Client(
+            parameters, mode=mode, read_timeout_seconds=READ_TIMEOUT_SECONDS
+        ) as client:
             assert len((await client.list_tools()).tools) == 10
             result = await client.call_tool("execute_change", {})
             assert result.is_error

@@ -12,7 +12,9 @@ from pydantic import ValidationError
 from mcp_releem.api.models import Check
 from mcp_releem.api.operations import OPERATIONS, APIError, prepare
 
-CAPTURE = Path(__file__).resolve().parents[1] / "docs/plans/evidence/releem-openapi-2026-11-11.json"
+CAPTURE = (
+    Path(__file__).resolve().parents[1] / "tests/fixtures/openapi/releem-openapi-2026-11-11.json"
+)
 
 
 @pytest.fixture(scope="module")
