@@ -1,0 +1,53 @@
+{
+  "verified_at": "2026-11-11T10:10:03.533233+00:00",
+  "version": "0.1.0",
+  "candidate_directory": "/var/folders/r_/s99frfmn3psbyhxx28wkdz_80000gn/T/mcp-releem-release.kSiowez3",
+  "source_revision": "4295c764933ffa6a3188849088d7c7c26f96305e",
+  "source_dirty": true,
+  "source_tree_sha256": "5d27435a543e27d5424ac3f377c8b7b300a415c63bf5fcb6ea446251e41a2c5b",
+  "image_id": "sha256:5a376c5374198ee733bae02c0abd889d319d7e51c90cdfc466c6d56d63d84ca9",
+  "architecture": "arm64",
+  "tests_passed": 268,
+  "format_lint_files": 86,
+  "mypy_sources": 58,
+  "checksums_verified": 17,
+  "synthetic_tcp_protocols": [
+    "legacy",
+    "2026-07-28"
+  ],
+  "archive_load": true,
+  "compose_rollback_image_switches": 3,
+  "claude_version": "2.1.70",
+  "claude_http_connection": true,
+  "claude_model_workflow": false,
+  "python_dependency_audit": {
+    "packages": 29,
+    "known_vulnerabilities": 0,
+    "first_party_excluded": "mcp-releem"
+  },
+  "image_audit": {
+    "image_id": "sha256:5a376c5374198ee733bae02c0abd889d319d7e51c90cdfc466c6d56d63d84ca9",
+    "high_package_records": 47,
+    "distinct_advisories": [
+      "CVE-2025-69720",
+      "CVE-2026-119373",
+      "CVE-2026-119374",
+      "CVE-2026-119379",
+      "CVE-2026-16742",
+      "CVE-2026-54369",
+      "CVE-2026-76642",
+      "CVE-2026-78408",
+      "CVE-2026-78409",
+      "CVE-2026-78410",
+      "CVE-2026-9538"
+    ],
+    "critical": 0,
+    "fixes_reported": 0,
+    "report_sha256": "dc45c9921a8613135d3bdd7191e58f0722c6bfe735dd964c2eff161b2fe0372a",
+    "release_gate": "failed; no exceptions approved"
+  },
+  "real_accounts_or_revocation_tested": false,
+  "credential_rotation": "UNCONFIRMED",
+  "remote_ci": "not run",
+  "publication_or_remote_deployment": false
+}

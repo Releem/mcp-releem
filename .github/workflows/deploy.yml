@@ -1,0 +1,72 @@
+name: Deploy MCP production
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mcp-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify AMD64 release and security gates
+        env:
+          RELEEM_RELEASE_SECURITY: "true"
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/check-release.sh | tee "$RUNNER_TEMP/release.log"
+          candidate=$(sed -n 's/^Release verification output: //p' "$RUNNER_TEMP/release.log")
+          test -f "$candidate/verification.json"
+          echo "CANDIDATE=$candidate" >> "$GITHUB_ENV"
+      - name: Publish the exact verified image
+        id: image
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DOCKER_CONFIG="$RUNNER_TEMP/registry"
+          mkdir -m 700 -p "$DOCKER_CONFIG"
+          trap 'rm -f "$DOCKER_CONFIG/config.json"' EXIT
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          image=$(python3 -c 'import json,os; print(json.load(open(os.environ["CANDIDATE"]+"/hosted-image-inspect.json"))[0]["Id"])')
+          tag="ghcr.io/releem/releem-mcp-server:$GITHUB_SHA"
+          docker tag "$image" "$tag"
+          docker push "$tag" | tee "$RUNNER_TEMP/push.log"
+          hash=$(sed -nE 's/^.*digest: (sha256:[a-f0-9]{64}) size:.*$/\1/p' "$RUNNER_TEMP/push.log")
+          digest="ghcr.io/releem/releem-mcp-server@$hash"
+          [[ "$digest" =~ ^ghcr.io/releem/releem-mcp-server@sha256:[a-f0-9]{64}$ ]]
+          echo "reference=$digest" >> "$GITHUB_OUTPUT"
+      - name: Deploy through verified SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST_KEYS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_IMAGE: ${{ steps.image.outputs.reference }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          DEPLOY_VERIFY_PUBLIC: "true"
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export DEPLOY_SSH_KEY_FILE="$RUNNER_TEMP/deploy-key"
+          export DEPLOY_KNOWN_HOSTS_FILE="$RUNNER_TEMP/known-hosts"
+          trap 'rm -f "$DEPLOY_SSH_KEY_FILE" "$DEPLOY_KNOWN_HOSTS_FILE"' EXIT
+          test -n "$DEPLOY_KEY" && test -n "$DEPLOY_HOST_KEYS"
+          printf '%s\n' "$DEPLOY_KEY" > "$DEPLOY_SSH_KEY_FILE"
+          printf '%s\n' "$DEPLOY_HOST_KEYS" > "$DEPLOY_KNOWN_HOSTS_FILE"
+          ssh-keygen -lf "$DEPLOY_KNOWN_HOSTS_FILE" | grep -F 'SHA256:vUhcic9+BnLGbikRaBg0ocgyPa5ixjmyIyYmOJ5wN7A'
+          sh deploy/ssh-deploy.sh --dry-run "$DEPLOY_IMAGE"
+          sh deploy/ssh-deploy.sh --apply "$DEPLOY_IMAGE"

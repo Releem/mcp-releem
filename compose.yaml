@@ -1,0 +1,72 @@
+# One shared application process; TLS terminates at trusted Cloudflare ingress.
+services:
+  mcp:
+    image: ${MCP_RELEEM_IMAGE:-mcp-releem:hosted}
+    build:
+      context: .
+      target: hosted
+    restart: unless-stopped
+    init: true
+    user: "65532:65532"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+    cpus: 1.0
+    mem_limit: 256m
+    pids_limit: 64
+    stop_grace_period: 40s
+    environment:
+      TZ: UTC
+      RELEEM_MCP_PROFILE: hosted
+      RELEEM_MCP_BIND_HOST: 0.0.0.0
+      RELEEM_MCP_PORT: "8000"
+      RELEEM_MCP_PUBLIC_URL: ${RELEEM_MCP_PUBLIC_URL:?Set public HTTPS /mcp URL in deploy/hosted.env}
+      RELEEM_API_BASE_URL: ${RELEEM_API_BASE_URL:-https://api2.dev.releem.com}
+      RELEEM_MCP_READ_ONLY: "true"
+      RELEEM_MCP_SENSITIVE_DETAILS: ${RELEEM_MCP_SENSITIVE_DETAILS:-false}
+      RELEEM_MCP_MAX_OUTPUT_BYTES: ${RELEEM_MCP_MAX_OUTPUT_BYTES:-24576}
+      RELEEM_MCP_REQUESTS_PER_MINUTE: ${RELEEM_MCP_REQUESTS_PER_MINUTE:-60}
+      RELEEM_MCP_MAX_CONCURRENT_REQUESTS: ${RELEEM_MCP_MAX_CONCURRENT_REQUESTS:-16}
+      RELEEM_MCP_PER_KEY_CONCURRENCY: ${RELEEM_MCP_PER_KEY_CONCURRENCY:-4}
+    ports:
+      - "127.0.0.1:${MCP_RELEEM_HOST_PORT:-8000}:8000"
+    healthcheck:
+      test: [CMD, python, -m, mcp_releem.hosted.health]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  cloudflared:
+    profiles: [tunnel]
+    image: cloudflare/cloudflared@sha256:4955524aeaa379e154023d5a027c250f7b35041a2e7e950cf13f144bc9b9c5ba
+    command: [tunnel, --no-autoupdate, run, --token-file, /run/secrets/tunnel-token]
+    depends_on:
+      mcp:
+        condition: service_healthy
+    restart: unless-stopped
+    user: "65532:65532"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.5
+    mem_limit: 128m
+    pids_limit: 64
+    volumes:
+      - type: bind
+        source: ${RELEEM_MCP_TUNNEL_TOKEN_FILE:-/opt/mcp-releem/secrets/tunnel-token}
+        target: /run/secrets/tunnel-token
+        read_only: true
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

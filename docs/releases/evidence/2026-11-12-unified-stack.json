@@ -1,0 +1,97 @@
+{
+  "verification": {
+    "status": "verified",
+    "verified_at": "2026-11-12T07:16:32.929191+00:00",
+    "version": "0.1.0",
+    "source_revision": "4295c764933ffa6a3188849088d7c7c26f96305e",
+    "source_dirty": true,
+    "lock_sha256": "868280ad900a96909a4886d6e3334795046ee12cb281cae9e426ea3b80535ecc",
+    "image_id": "sha256:8011a788fe477d6629559a4005d84b4bb32deae8e2919e3d8ec97a712b657f65",
+    "os": "linux",
+    "architecture": "amd64",
+    "delivery": "uncommitted developer preview",
+    "files": {
+      ".gitignore": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1",
+      "compose-smoke.log": "ff47bc6c6ded6b8bbda299d8e5f2200b42d9b7c7cbb7645754317966ab58a64f",
+      "hosted-image-inspect.json": "619cac7eed238bf55e969bfbaad62e8d7eab71fdea03f999abc952a68c1815bf",
+      "hosted-image.tar": "b3a97f472eeeac2ee180701ac4e989b5e81fbfc5907b0a92c8f3e974fdee6ec6",
+      "hosted-installed-check.json": "56051942a746f71de6b8f30d0ea64cb0642adb961ef17a106cf847b57d58580d",
+      "image-inspect.json": "4a75696ecbf9bbead32b0ea5ffd775087afe87d0ecd5f05024e15ced08bf2159",
+      "installed-check.json": "56051942a746f71de6b8f30d0ea64cb0642adb961ef17a106cf847b57d58580d",
+      "licenses.json": "6b2ccb27ebd3f486452e9f582fa21ad22b14da1f70b296e9a05014ffdf1ce713",
+      "local-journey.json": "e8bf0a18d43712d9712e9ebc419a2443c8b886b55124c4a91f041069e764708b",
+      "mcp_releem-0.1.0-py3-none-any.whl": "ba2f7e033d97b0fcf6dbd5919d52b3f4b59fae4a49a47d9b6cbaad8cc622bcc9",
+      "mcp_releem-0.1.0.tar.gz": "89f5715a94eb1114628ec8beef164315d05d3d9a7839ae632f4773220bb48646",
+      "pip-audit.json": "061a305e0a4fb9a14036d63867523207089e462432d052ff182b113b731dded7",
+      "runtime-image.tar": "6a2b43ff702eb0dcd274c52e52b2601aa2b70861c89f9aaf30a009ef47821970",
+      "runtime-smoke.jsonl": "ed068641153716887df41a0ecfe87d17b9dfd4f6ac4710fb7af526c48d82bf90",
+      "scanned-archive-sha256.txt": "81e031d59ee365cfc18624618da0697efca0fa9702da866d57234a0604283191",
+      "scanned-config-id.txt": "41625f61cd1623cc41e9dfd8e3e4ca839a71d5aa3314c4656e24985ec542aac2",
+      "scanned-image-id.txt": "34928801d41c5e8596f232d674b5faca715795f60e6dacfabeddb6738f2c1f0e",
+      "security-report.json": "684be04c9e42e910fd46bf8244e1968beecf11f9894fbfd3943ccd8034ea42e9",
+      "source-manifest-final.json": "5eac27929a75741b49cca8ee61526736649fc0058726bf79ee0ddebd9c09d3ba",
+      "source-manifest.json": "5eac27929a75741b49cca8ee61526736649fc0058726bf79ee0ddebd9c09d3ba",
+      "stack-smoke.log": "e3f1ec4e63d61265926a25393026b3fad44c1abd59cb7206ae4d5a9e01ac2e54",
+      "trivy.json": "3a7153141b81127e4f8b8b6ed4c17364e6043f08c5d314a898ac6ff8060071ee",
+      "wheel-check.json": "56051942a746f71de6b8f30d0ea64cb0642adb961ef17a106cf847b57d58580d"
+    },
+    "source_tree_sha256": "b4f42ed8999ece4c4ff2ada8c3a73b36b8e6d1501938e2143859996dbb24474e",
+    "security_audit": "passed",
+    "hosted_image_id": "sha256:97c9a8ab5876bffc913ede5a5d44ec6acf8addfe118d2547459f57db49b1db59",
+    "hosted_os": "linux",
+    "hosted_architecture": "amd64"
+  },
+  "security": {
+    "audited_packages": 29,
+    "first_party_exclusions": [
+      {
+        "name": "mcp-releem",
+        "reason": "First-party source reviewed separately"
+      }
+    ],
+    "known_python_vulnerabilities": 0,
+    "bundled_license_notices": true,
+    "image_id": "sha256:97c9a8ab5876bffc913ede5a5d44ec6acf8addfe118d2547459f57db49b1db59",
+    "config_image_id": "sha256:85db7205f31c6893283f14bdf51928e5f1190da9f2f771aa2365887202d00fb3",
+    "archive_sha256": "b3a97f472eeeac2ee180701ac4e989b5e81fbfc5907b0a92c8f3e974fdee6ec6",
+    "status": "passed",
+    "scanned_at": "2026-11-12T07:16:32.386366+00:00",
+    "known_high_critical_image_vulnerabilities": 0,
+    "scope": "known advisories; not proof of absence of vulnerabilities"
+  },
+  "source": "b4f42ed8999ece4c4ff2ada8c3a73b36b8e6d1501938e2143859996dbb24474e",
+  "stack_smoke": "Combined stack smoke passed: private service DNS, health ordering, connector recovery, MCP restart and app-only update",
+  "checked_at": "2026-11-12T07:19:55Z",
+  "target": "ubuntu@40.160.8.37",
+  "project": "mcp-releem",
+  "services": [
+    "mcp",
+    "cloudflared"
+  ],
+  "connector_profile": "tunnel",
+  "origin": "http://mcp:8000",
+  "activation": {
+    "health": "200 alive",
+    "unauthenticated_mcp": "401",
+    "binding": "127.0.0.1:8000",
+    "connector": "token absent; not started",
+    "stack_wrapper": "/opt/mcp-releem/stack",
+    "setup_helper": "/opt/mcp-releem/setup/start-tunnel.sh"
+  },
+  "checks": {
+    "pytest": "351 passed in 21.89s",
+    "ruff": "96 files clean",
+    "mypy": "62 sources clean",
+    "shellcheck": "passed",
+    "actionlint": "passed",
+    "checksums": 24,
+    "independent_review": "no important findings",
+    "source_fingerprint_matches_local": true
+  },
+  "remaining": [
+    "Owner installs tunnel token using hidden prompt",
+    "Cloudflare route hostname mcp.releem.com service http://mcp:8000 HTTP Host mcp.releem.com",
+    "Public HTTPS/authenticated client and actual host reboot not verified",
+    "GitHub publication and environment secrets remain pending"
+  ]
+}

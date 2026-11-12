@@ -1,0 +1,1022 @@
+{
+  "old_operations": 45,
+  "new_operations": 46,
+  "added_operations": [
+    [
+      "get",
+      "/v1/checks"
+    ]
+  ],
+  "removed_operations": [],
+  "changes": [
+    {
+      "path": "/components/schemas/CheckCatalogItem",
+      "added": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "health",
+              "security"
+            ],
+            "title": "Type",
+            "description": "Check type: `health` or `security`.",
+            "examples": [
+              "health"
+            ]
+          },
+          "dbms": {
+            "type": "string",
+            "enum": [
+              "mysql",
+              "postgresql"
+            ],
+            "title": "Dbms",
+            "description": "DBMS family the texts apply to: `mysql` (MySQL and MariaDB) or `postgresql`.",
+            "examples": [
+              "mysql"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "Machine name of the check, as used in the server's health-checks and security-checks responses.",
+            "examples": [
+              "thread_cache_hit_rate"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Human-readable name of the check.",
+            "examples": [
+              "Thread Cache Hit Rate"
+            ]
+          },
+          "short_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Description",
+            "description": "One-line summary of the check for a table row, or null when there is none.",
+            "examples": [
+              "How often a cached thread is reused."
+            ]
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "What the check examines and why it matters. Plain text; it contains no values of a particular server.",
+            "examples": [
+              "Shows how often a new connection reuses a cached thread instead of creating one."
+            ]
+          },
+          "learn_more_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learn More Url",
+            "description": "Documentation link for the check, or null when there is none.",
+            "examples": [
+              "https://example.com/docs/thread-cache"
+            ]
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity",
+            "description": "Importance of a security check: `critical`, `high` or `moderate`. Null for health checks.",
+            "examples": [
+              "high"
+            ]
+          },
+          "group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group",
+            "description": "Section the check is listed under, or null when it has none.",
+            "examples": [
+              "Queries"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "dbms",
+          "key",
+          "title",
+          "description"
+        ],
+        "title": "CheckCatalogItem"
+      }
+    },
+    {
+      "path": "/components/schemas/CheckCatalogResponse",
+      "added": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CheckCatalogItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "One entry per check of one DBMS family."
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "CheckCatalogResponse"
+      }
+    },
+    {
+      "path": "/components/schemas/PublicHealthChecksResponse/properties/checks/description",
+      "before": "All health checks keyed by name. Each value follows ServerHealthCheckResult.",
+      "after": "All health checks keyed by name, in display order. Each value follows ServerHealthCheckResult."
+    },
+    {
+      "path": "/components/schemas/PublicSecurityChecksResponse/properties/checks/description",
+      "before": "All recognized security checks keyed by name. Each value follows ServerHealthCheckResult.",
+      "after": "All recognized security checks keyed by name, in display order. Each value follows ServerHealthCheckResult."
+    },
+    {
+      "path": "/components/schemas/ServerDetailsResponse/properties/health_checks/description",
+      "before": "Failing health checks keyed by check name. Values follow ServerHealthCheckResult. Use `/health-checks` for all checks.",
+      "after": "All health checks keyed by check name, in display order. Values follow ServerHealthCheckResult."
+    },
+    {
+      "path": "/components/schemas/ServerDetailsResponse/properties/security_checks/description",
+      "before": "Failing security checks keyed by check name. Values follow ServerHealthCheckResult. Use `/security-checks` for all checks.",
+      "after": "All recognized security checks keyed by check name, in display order. Values follow ServerHealthCheckResult."
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/description/anyOf",
+      "added": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/description/default",
+      "added": null
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/description/description",
+      "before": "Description of the check.",
+      "after": "What the check examines and why it matters, or null when the catalog has no entry. Plain text; it contains no values of a particular server."
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/description/examples",
+      "before": [
+        "Checks InnoDB read efficiency health."
+      ],
+      "after": [
+        "Shows how often a new connection reuses a cached thread instead of creating one."
+      ]
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/description/type",
+      "removed": "string"
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/failed/anyOf",
+      "added": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/failed/default",
+      "added": null
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/failed/type",
+      "removed": "boolean"
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/group",
+      "added": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Group",
+        "description": "Section the check is listed under, or null when it has none.",
+        "examples": [
+          "Queries"
+        ]
+      }
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/learn_more_url",
+      "added": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Learn More Url",
+        "description": "Documentation link for the check, or null when there is none.",
+        "examples": [
+          "https://example.com/docs/thread-cache"
+        ]
+      }
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/severity",
+      "added": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Severity",
+        "description": "Importance of a security check: `critical`, `high` or `moderate`. Null for health checks and for checks without a catalog entry.",
+        "examples": [
+          "high"
+        ]
+      }
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/short_description",
+      "added": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Short Description",
+        "description": "One-line summary of the check for a table row, or null.",
+        "examples": [
+          "How often a cached thread is reused."
+        ]
+      }
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/properties/title",
+      "added": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Title",
+        "description": "Human-readable name of the check, or null when the catalog has no entry for it.",
+        "examples": [
+          "Thread Cache Hit Rate"
+        ]
+      }
+    },
+    {
+      "path": "/components/schemas/ServerHealthCheckResult/required",
+      "removed": [
+        "failed",
+        "description"
+      ]
+    },
+    {
+      "path": "/paths//v1/checks",
+      "added": {
+        "get": {
+          "tags": [
+            "Checks"
+          ],
+          "summary": "List Health and Security Checks",
+          "description": "Title, texts, documentation link, severity and group of every health and security check, ordered by type, DBMS family and display order. The texts describe the check itself and are the same for every user and server. A server's results already include them: see `GET /v1/servers/{id}/health-checks` and `GET /v1/servers/{id}/security-checks`, whose check names match `key`.\n\nThe same `key` can appear once per DBMS family with different texts, so match on `type`, `dbms` and `key` together.",
+          "operationId": "list_checks_v1_checks_get",
+          "security": [
+            {
+              "apiToken": []
+            },
+            {
+              "bearerAuth": [],
+              "bubbleAuth": [],
+              "userApiKey": []
+            }
+          ],
+          "parameters": [
+            {
+              "name": "type",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "health",
+                      "security"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Type"
+              },
+              "description": "Return only checks of this type. Omit for both.",
+              "example": "health"
+            },
+            {
+              "name": "dbms",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "mysql",
+                      "postgresql"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Dbms"
+              },
+              "description": "Return only checks of this DBMS family. `mysql` covers MySQL and MariaDB. Omit for both.",
+              "example": "mysql"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/CheckCatalogResponse"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "`type` or `dbms` is not one of the allowed values.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Authentication failed.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "path": "/paths//v1/servers/configurations/get/description",
+      "before": "The current state of the newest configuration of each server the authenticated user owns, ordered by server. A server without configurations is omitted.",
+      "after": "The current configuration state of each server the authenticated user owns, ordered by server: the newest state of the server, whichever configuration it belongs to. A server without configuration states is omitted."
+    },
+    {
+      "path": "/paths//v1/servers/configurations/get/summary",
+      "before": "List Latest Configurations for All User Servers",
+      "after": "List Current Configurations for All User Servers"
+    },
+    {
+      "path": "/paths//v1/servers/{id}/configurations/get/description",
+      "before": "Every configuration state of one server, applied or not, newest first \u2014 the list Releem Platform shows. Each row is one state of a configuration, so a configuration that was applied or rolled back appears once per state; `configuration_id` groups them. All states are returned unless `limit` is given. With `latest=true` only the current state of the newest configuration is returned, or an empty list when the server has none.",
+      "after": "Every configuration state of one server, applied or not, newest first \u2014 the list Releem Platform shows. Each row is one state of a configuration, so a configuration that was applied or rolled back appears once per state; `configuration_id` groups them. All states are returned unless `limit` is given. With `latest=true` only the server's current state is returned \u2014 its newest state, the first row of the full list \u2014 or an empty list when the server has none."
+    },
+    {
+      "path": "/paths//v1/servers/{id}/configurations/get/parameters",
+      "before": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Server id",
+            "title": "Id"
+          },
+          "description": "The ID of the server",
+          "example": "101"
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Maximum number of configuration states, newest first; all when omitted",
+            "title": "Limit"
+          },
+          "description": "Maximum states to return, at least 1; all when omitted",
+          "example": 100
+        },
+        {
+          "name": "latest",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "boolean",
+            "description": "Return only the current state of the newest configuration; limit is ignored",
+            "default": false,
+            "title": "Latest"
+          },
+          "description": "Return only the current state of the newest configuration; `limit` is ignored",
+          "example": true
+        }
+      ],
+      "after": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Server id",
+            "title": "Id"
+          },
+          "description": "The ID of the server",
+          "example": "101"
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Maximum number of configuration states, newest first; all when omitted",
+            "title": "Limit"
+          },
+          "description": "Maximum states to return, at least 1; all when omitted",
+          "example": 100
+        },
+        {
+          "name": "latest",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "boolean",
+            "description": "Return only the server's current (newest) configuration state; limit is ignored",
+            "default": false,
+            "title": "Latest"
+          },
+          "description": "Return only the server's current (newest) configuration state; `limit` is ignored",
+          "example": true
+        }
+      ]
+    },
+    {
+      "path": "/paths//v1/servers/{id}/details/get/description",
+      "before": "Server metadata with the health and security checks that currently fail. Every check, passing or failing, with its value: `GET /v1/servers/{id}/health-checks` and `GET /v1/servers/{id}/security-checks`.\n\nRecognized security findings remain available when part of a report cannot be interpreted. Unresolved entries are returned in security_checks_unknown, and security_checks_decode_error describes any interpretation error. An empty security_checks object does not establish that all checks passed: inspect these fields and use the security-checks endpoint for the complete report. When no report is available, security_checks is empty and security_checks_decode_error is null.",
+      "after": "Server metadata with every health and security check of the latest report, passing or failing, in display order. Each check carries its result and its catalog texts: title, descriptions, documentation link, severity and group.\n\nRecognized security findings remain available when part of a report cannot be interpreted. Unresolved entries are returned in security_checks_unknown, and security_checks_decode_error describes any interpretation error. An empty security_checks object does not establish that all checks passed: inspect these fields. When no report is available, security_checks is empty and security_checks_decode_error is null."
+    },
+    {
+      "path": "/paths//v1/servers/{id}/health-checks/get/description",
+      "before": "Every health check of the server's latest report, with its value.",
+      "after": "Every health check of the server's latest report, in display order, with its result, value and catalog texts: title, descriptions, documentation link and group. MySQL/MariaDB and PostgreSQL servers have different checks. A check the catalog has no entry for is listed last with null texts."
+    },
+    {
+      "path": "/paths//v1/servers/{id}/metrics/averages/get/description",
+      "before": "Average, minimum and maximum of every metric of one server over a window, computed from hourly trends in one read. A metric without trend data in the window is listed with null values. `start_time` and `end_time` are required; a reversed range is rejected with 400 `invalid_time_range` and a window longer than 366 days with 400 `time_range_too_wide`. Request two windows to compare a period with the previous one.",
+      "after": "Average, minimum and maximum of every metric of one server over a window, computed from hourly trends in one read. A metric without trend data in the window is listed with null values. `start_time` and `end_time` are required; a reversed range is rejected with 400 `invalid_time_range` and a window longer than 366 days with 400 `time_range_too_wide`. The window includes `start_time` and excludes `end_time`, so adjacent windows do not overlap; request two windows to compare a period with the previous one. Values that are not finite numbers are returned as null."
+    },
+    {
+      "path": "/paths//v1/servers/{id}/metrics/averages/get/parameters",
+      "before": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Server id",
+            "title": "Id"
+          },
+          "description": "The ID of the server",
+          "example": "101"
+        },
+        {
+          "name": "start_time",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start time (ISO format)",
+            "title": "Start Time"
+          },
+          "description": "Start of the window (ISO 8601)",
+          "example": "2025-01-08T00:00:00Z"
+        },
+        {
+          "name": "end_time",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End time (ISO format)",
+            "title": "End Time"
+          },
+          "description": "End of the window (ISO 8601)",
+          "example": "2025-01-15T00:00:00Z"
+        }
+      ],
+      "after": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Server id",
+            "title": "Id"
+          },
+          "description": "The ID of the server",
+          "example": "101"
+        },
+        {
+          "name": "start_time",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start time (ISO format)",
+            "title": "Start Time"
+          },
+          "description": "Start of the window (ISO 8601)",
+          "example": "2025-01-08T00:00:00Z"
+        },
+        {
+          "name": "end_time",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End time (ISO format)",
+            "title": "End Time"
+          },
+          "description": "End of the window (ISO 8601), exclusive",
+          "example": "2025-01-15T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "path": "/paths//v1/servers/{id}/query-analytics/get/description",
+      "before": "Retrieve query execution statistics for a time window. The window is `[start_date, start_date + period_days)`, or the last `period_days` up to now without `start_date`. Percentages are relative to every query that passes the filters, so with `schema_name` they are shares of that schema.",
+      "after": "Retrieve query execution statistics for a time window. The window is `[start_date, start_date + period)`, `[start_date, end_date)`, or the last `period` up to now without `start_date`. The start is included and the end is excluded in every mode. An explicit `end_date` requires `start_date` and overrides `period`; it must be later than the start. Bounds use second precision. Percentages are relative to every query that passes the filters, so with `schema_name` they are shares of that schema. The period is a positive integer optionally followed by `m` (minutes), `h` (hours), or `d` (days); a bare integer means days. Other suffixes are rejected."
+    },
+    {
+      "path": "/paths//v1/servers/{id}/query-analytics/get/parameters",
+      "before": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Server id",
+            "title": "Id"
+          },
+          "description": "The ID of the server",
+          "example": "101"
+        },
+        {
+          "name": "period_days",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "description": "Window length in days: 1, 7, 14, 30, 60 or 90",
+            "default": 1,
+            "title": "Period Days"
+          },
+          "description": "1, 7, 14, 30, 60 or 90",
+          "example": 1
+        },
+        {
+          "name": "start_date",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Window start, ISO date or datetime; without it the window ends now",
+            "title": "Start Date"
+          },
+          "description": "ISO date or datetime",
+          "example": "2025-01-15"
+        },
+        {
+          "name": "timezone",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "IANA time zone in which a start_date without an offset is read",
+            "default": "UTC",
+            "title": "Timezone"
+          },
+          "description": "IANA time zone in which a `start_date` without an offset is read",
+          "example": "Etc/UTC"
+        },
+        {
+          "name": "sort_by",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "sum_time_perc_first, calls, avg_time_ms or sum_time_perc_total",
+            "default": "sum_time_perc_first",
+            "title": "Sort By"
+          },
+          "description": "`sum_time_perc_first`, `calls`, `avg_time_ms` or `sum_time_perc_total`",
+          "example": "calls"
+        },
+        {
+          "name": "order",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "desc or asc",
+            "default": "desc",
+            "title": "Order"
+          },
+          "description": "`desc` or `asc`",
+          "example": "desc"
+        },
+        {
+          "name": "schema_name",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only queries of this schema",
+            "title": "Schema Name"
+          },
+          "description": "Only queries of this schema",
+          "example": "example_db"
+        },
+        {
+          "name": "query_filter",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "RE2 regular expression matched against the normalized query",
+            "title": "Query Filter"
+          },
+          "description": "RE2 regular expression matched against the normalized query",
+          "example": "example_orders"
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "maximum": 200,
+            "minimum": 1,
+            "description": "Number of top queries to return",
+            "default": 200,
+            "title": "Limit"
+          },
+          "description": "Number of top queries, 1-200",
+          "example": 200
+        }
+      ],
+      "after": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "Server id",
+            "title": "Id"
+          },
+          "description": "The ID of the server",
+          "example": "101"
+        },
+        {
+          "name": "period",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "Positive integer with optional m (minutes), h (hours), d (days); bare numbers mean days",
+            "default": "1",
+            "title": "Period"
+          },
+          "description": "Positive integer with optional m (minutes), h (hours) or d (days). A bare integer means days. Default: 1 day. An explicit end_date overrides this duration; the period must still be valid.",
+          "example": "10m"
+        },
+        {
+          "name": "start_date",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Window start, ISO date or datetime; without it the window ends now",
+            "title": "Start Date"
+          },
+          "description": "Inclusive start, ISO date or datetime",
+          "example": "2025-01-15"
+        },
+        {
+          "name": "end_date",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exclusive window end, ISO date or datetime; requires start_date and overrides period",
+            "title": "End Date"
+          },
+          "description": "Exclusive end, ISO date or datetime. Requires start_date, must be later, and overrides period.",
+          "example": "2025-01-15T00:10:00Z"
+        },
+        {
+          "name": "timezone",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "IANA time zone for start_date and end_date without an offset",
+            "default": "UTC",
+            "title": "Timezone"
+          },
+          "description": "IANA time zone for start_date and end_date without an offset; explicit offsets take precedence",
+          "example": "Etc/UTC"
+        },
+        {
+          "name": "sort_by",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "sum_time_perc_first, calls, avg_time_ms or sum_time_perc_total",
+            "default": "sum_time_perc_first",
+            "title": "Sort By"
+          },
+          "description": "`sum_time_perc_first`, `calls`, `avg_time_ms` or `sum_time_perc_total`",
+          "example": "calls"
+        },
+        {
+          "name": "order",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "description": "desc or asc",
+            "default": "desc",
+            "title": "Order"
+          },
+          "description": "`desc` or `asc`",
+          "example": "desc"
+        },
+        {
+          "name": "schema_name",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only queries of this schema",
+            "title": "Schema Name"
+          },
+          "description": "Only queries of this schema",
+          "example": "example_db"
+        },
+        {
+          "name": "query_filter",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "RE2 regular expression matched against the normalized query",
+            "title": "Query Filter"
+          },
+          "description": "RE2 regular expression matched against the normalized query",
+          "example": "example_orders"
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "maximum": 200,
+            "minimum": 1,
+            "description": "Number of top queries to return",
+            "default": 200,
+            "title": "Limit"
+          },
+          "description": "Number of top queries, 1-200",
+          "example": 200
+        }
+      ]
+    },
+    {
+      "path": "/paths//v1/servers/{id}/query-analytics/get/responses/400/description",
+      "before": "`invalid_period_days`, `invalid_start_date`, `invalid_timezone`, `invalid_sort_by`, `invalid_order` or `invalid_query_filter` (not a valid RE2 expression).",
+      "after": "`invalid_period`, `invalid_start_date`, `invalid_end_date`, `invalid_time_range`, `invalid_timezone`, `invalid_sort_by`, `invalid_order` or `invalid_query_filter` (not a valid RE2 expression)."
+    },
+    {
+      "path": "/paths//v1/servers/{id}/security-checks/get/description",
+      "before": "Every security check of the server's latest security snapshot, with its value. Check names follow the snapshot's engine: MySQL/MariaDB and PostgreSQL use separate catalogs. Account checks can fail with a null value when the producer did not include account details. Unsupported failure codes or mixed/ambiguous engine fields return `422 invalid_source_data`; they are not returned as an empty successful snapshot.",
+      "after": "Every security check of the server's latest security snapshot, in display order, with its result, value and catalog texts: title, descriptions, documentation link, severity and group. A check the catalog has no entry for is listed last with null texts. Check names follow the snapshot's engine: MySQL/MariaDB and PostgreSQL use separate catalogs. Account checks can fail with a null value when the producer did not include account details. Unsupported failure codes or mixed/ambiguous engine fields return `422 invalid_source_data`; they are not returned as an empty successful snapshot."
+    },
+    {
+      "path": "/tags",
+      "before": [
+        {
+          "name": "Servers"
+        },
+        {
+          "name": "Metrics"
+        },
+        {
+          "name": "Recommendations"
+        },
+        {
+          "name": "Server Chat"
+        },
+        {
+          "name": "Server Writes",
+          "description": "Writes for one server. Like the reads, every route requires the authenticated user to own the server named by `{id}` (canonical decimal form). Every write that passes body validation is recorded in the API audit log, including ones refused by the ownership or record checks. New tasks and query optimization records use the request processing time as their status timestamp. Updating a query optimization record does not change its status timestamp."
+        },
+        {
+          "name": "Customers"
+        },
+        {
+          "name": "Server Diagnostics",
+          "description": "Server-scoped read endpoints for one server's details, configuration history, query optimizations, metrics, deadlocks, agent tasks, processlist captures, and schema checks. All routes require the authenticated user to own the server named by `{id}`; an unknown or foreign server ID returns 404. `{id}` must be the canonical decimal form \u2014 `00101` or `abc` returns 404 on every route rather than being cast to a number."
+        }
+      ],
+      "after": [
+        {
+          "name": "Servers"
+        },
+        {
+          "name": "Metrics"
+        },
+        {
+          "name": "Recommendations"
+        },
+        {
+          "name": "Server Chat"
+        },
+        {
+          "name": "Server Writes",
+          "description": "Writes for one server. Like the reads, every route requires the authenticated user to own the server named by `{id}` (canonical decimal form). Every write that passes body validation is recorded in the API audit log, including ones refused by the ownership or record checks. New tasks and query optimization records use the request processing time as their status timestamp. Updating a query optimization record does not change its status timestamp."
+        },
+        {
+          "name": "Customers"
+        },
+        {
+          "name": "Server Diagnostics",
+          "description": "Server-scoped read endpoints for one server's details, configuration history, query optimizations, metrics, deadlocks, agent tasks, processlist captures, and schema checks. All routes require the authenticated user to own the server named by `{id}`; an unknown or foreign server ID returns 404. `{id}` must be the canonical decimal form \u2014 `00101` or `abc` returns 404 on every route rather than being cast to a number."
+        },
+        {
+          "name": "Checks",
+          "description": "Display texts for health and security checks. They describe a check itself, never one server's result."
+        }
+      ]
+    }
+  ]
+}

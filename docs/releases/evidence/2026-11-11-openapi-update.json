@@ -1,0 +1,97 @@
+{
+  "recorded_at": "2026-11-11T16:18:03.219153+00:00",
+  "scope": "OpenAPI compatibility update; private uncommitted preview",
+  "candidate_directory": "/var/folders/r_/s99frfmn3psbyhxx28wkdz_80000gn/T/mcp-releem-release.YhWQ26sM",
+  "verification": {
+    "status": "verified",
+    "verified_at": "2026-11-11T16:16:18.395410+00:00",
+    "version": "0.1.0",
+    "source_revision": "4295c764933ffa6a3188849088d7c7c26f96305e",
+    "source_dirty": true,
+    "source_tree_sha256": "62a4840ddf3ba568452bd4edc196cb9eb241ddf90f9c5910189ba06c16a19ed7",
+    "image_id": "sha256:e80573eb432eddce48587f055b2d2a70a8aea7aba8fc9b22ecd6be1b64cff92d",
+    "hosted_image_id": "sha256:59b55cb9c290bb50808768eff8a67e2b480b0971f890f84923600cf4eeb9dba8",
+    "architecture": "arm64",
+    "security_audit": "passed"
+  },
+  "active_contract": {
+    "capture": "docs/plans/evidence/releem-openapi-2026-11-11.json",
+    "sha256": "a2474b68c2b32f589bd24c820ab0a80df9200e888476aee78cb3c590c6b19e40",
+    "operations": 46
+  },
+  "checks": {
+    "pytest": {
+      "passed": 343,
+      "seconds": 19.87
+    },
+    "ruff_formatted_files": 93,
+    "ruff_lint": "passed",
+    "strict_mypy_sources": 61,
+    "artifact_checksums": 22,
+    "locked_builds": "passed",
+    "installed_wheel_stdio": "passed",
+    "compose_lifecycle": "passed",
+    "provenance_manifest_entries": 21
+  },
+  "security": {
+    "audited_packages": 29,
+    "first_party_exclusions": [
+      {
+        "name": "mcp-releem",
+        "reason": "First-party source reviewed separately"
+      }
+    ],
+    "known_python_vulnerabilities": 0,
+    "bundled_license_notices": true,
+    "image_id": "sha256:59b55cb9c290bb50808768eff8a67e2b480b0971f890f84923600cf4eeb9dba8",
+    "archive_sha256": "a927fa3df07eec3b4aeddbd5818e19e4830d965a8a5ce7e3c42f9d90712bca67",
+    "status": "passed",
+    "scanned_at": "2026-11-11T16:16:14.797419+00:00",
+    "known_high_critical_image_vulnerabilities": 0,
+    "scope": "known advisories; not proof of absence of vulnerabilities"
+  },
+  "synthetic_tcp": {
+    "protocol_modes": [
+      "legacy",
+      "2026-07-28"
+    ],
+    "two_account_isolation": true,
+    "revocation": true,
+    "missing_evidence_visible": true,
+    "recommendation_workflow": true,
+    "current_query_windows": true,
+    "dependency_failure_visible": true,
+    "data": "synthetic only",
+    "transport": "loopback TCP"
+  },
+  "client": {
+    "name": "Claude Code",
+    "version": "2.1.70",
+    "isolated_profile": true,
+    "http_connection": "passed",
+    "demo_url": "http://127.0.0.1:55670/mcp",
+    "tools_prompts_resource_schemas": "SDK tests passed both protocol modes",
+    "model_calls": false
+  },
+  "reviews": {
+    "findings_spec": "clear",
+    "findings_quality": "clear",
+    "query_contract_spec": "clear after timestamp lexical validation fix",
+    "query_contract_quality": "clear"
+  },
+  "boundaries": {
+    "tools": 10,
+    "allowlisted_gets": 26,
+    "new_check_catalog": "deferred",
+    "authenticated_customer_calls": 0,
+    "database_operations": 0,
+    "commit": false,
+    "publish_deploy": false
+  },
+  "limitations": [
+    "Synthetic account isolation/revocation is not real-account certification",
+    "Actual-host TLS/Cloudflare and model-driven client onboarding remain unverified",
+    "Remote CI and native AMD64 remain separate release gates"
+  ],
+  "tool_note": "pip-audit wrapper repeated its existing realpath warning; exited successfully with a complete29-package clean report; same warning appears in previous successful audit"
+}
