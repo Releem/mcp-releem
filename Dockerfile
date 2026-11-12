@@ -24,7 +24,7 @@ FROM scratch AS artifacts
 COPY --from=build /app/dist /
 
 FROM base AS runtime
-LABEL org.opencontainers.image.source="https://github.com/Releem/releem-mcp-server"
+LABEL org.opencontainers.image.source="https://github.com/Releem/mcp-releem"
 RUN --mount=type=bind,source=tools/containers,target=/build-tools,ro python /build-tools/runtime_base.py
 RUN --mount=type=tmpfs,target=/tmp uv sync --locked --no-dev --no-editable --no-cache
 ENV PATH="/opt/venv/bin:$PATH"

@@ -154,6 +154,22 @@ creation policy permits the repository to publish `ghcr.io/releem/releem-mcp-ser
 the workflow does not change package visibility. Customer API keys and tunnel
 tokens are never GitHub secrets.
 
+If GHCR login succeeds but the final image push returns `denied`, check package
+permissions before changing tokens. In **Releem → Packages → releem-mcp-server →
+Package settings → Manage Actions access**, grant repository **Releem/mcp-releem**
+the **Write** role. Connect the package to that repository as well; an existing
+package does not necessarily inherit permissions just because it is linked later.
+The workflow already requests `packages: write`. If the package does not exist,
+check the organization's package-creation policy. See GitHub's
+[workflow package access guidance](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility#ensuring-workflow-access-to-your-package).
+
+The image's `org.opencontainers.image.source` label must identify the current
+repository, `https://github.com/Releem/mcp-releem`. The registry package name stays
+`ghcr.io/releem/releem-mcp-server`; it need not equal the repository name. Publish
+metadata corrections and start a new workflow run so it builds the updated image.
+The temporary Docker credentials-file warning after login is not a push denial;
+the workflow removes that file through its exit trap, including on failure.
+
 Go to **Actions → Deploy MCP production → Run workflow**, selecting the default
 branch. Concurrent deploys serialize; in-progress runs are not cancelled. Deployment
 does not run on PRs or arbitrary branches. Verification runs in native AMD64 Docker,
