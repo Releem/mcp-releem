@@ -43,7 +43,7 @@ class HostedHarness:
                     {
                         "id": sid,
                         "server_name": "customer-" + sid,
-                        "instance_type": {"id": "1", "name": "On-premise"},
+                        "instance_type": {"id": "1", "name": "On-premise"} if key == KEY_A else "1",
                     }
                 ],
             )

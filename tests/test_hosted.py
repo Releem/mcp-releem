@@ -12,6 +12,9 @@ def test_hosted_config_has_no_global_credential_fallback():
         "RELEEM_MCP_PUBLIC_URL": "https://mcp.example.invalid/mcp",
     }
     assert settings.from_env(env).redacted()["profile"] == "hosted"
+    assert settings.from_env(env).base_url == "https://api2.releem.com"
+    previous = "https://api2.dev.releem.com"
+    assert settings.from_env({**env, "RELEEM_API_BASE_URL": previous}).base_url == previous
     for change in [
         {"RELEEM_API_TOKEN": KEY_A},
         {"RELEEM_SECRET_KEY": KEY_A},
@@ -60,8 +63,13 @@ def test_hosted_requests_cannot_cross_credentials_or_authorized_server_scope():
                     for key in [KEY_A, KEY_B]
                 )
             )
-            assert a.json()["result"]["structuredContent"]["data"]["items"][0]["id"] == "101"
-            assert b.json()["result"]["structuredContent"]["data"]["items"][0]["id"] == "202"
+            typed = a.json()["result"]["structuredContent"]["data"]["items"][0]
+            legacy = b.json()["result"]["structuredContent"]["data"]["items"][0]
+            assert typed["id"] == "101" and typed["instance_type"] == {
+                "id": "1",
+                "name": "On-premise",
+            }
+            assert legacy["id"] == "202" and legacy["instance_type"] == "1"
             denied = await rpc(
                 client,
                 "tools/call",

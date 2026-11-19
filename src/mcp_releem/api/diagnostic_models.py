@@ -2,7 +2,7 @@
 
 from pydantic import Field
 
-from .models import UpstreamModel
+from .models import CodeId, UpstreamModel
 
 
 class Period(UpstreamModel):
@@ -29,7 +29,7 @@ class ConfigurationState(UpstreamModel):
     server_id: int
     timestamp: int
     configuration_timestamp: int | None = None
-    applied_status: int
+    applied_status: CodeId
     applied_timestamp: int
     is_first: bool
     required_restart: int | None = None
@@ -37,7 +37,7 @@ class ConfigurationState(UpstreamModel):
 
 
 class ConfigurationDetail(ConfigurationState):
-    applied_status: int = 0
+    applied_status: CodeId = 0
     variables: list[Variable]
     history: ConfigurationHistory | None = None
     period: Period | None = None

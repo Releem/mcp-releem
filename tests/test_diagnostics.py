@@ -68,6 +68,66 @@ def test_invalid_report_is_partial_failure_not_empty_health(records):
     assert "synthetic-secret" not in result.model_dump_json()
 
 
+@pytest.mark.parametrize(
+    "text,value,unit",
+    [("95.5%", 95.5, "%"), ("12.5min", 12.5, "min"), ("4.5s", 4.5, "s"), ("3count", 3, "count")],
+)
+def test_health_preserves_numeric_value_and_documented_unit(records, text, value, unit):
+    for section in ("health", "security"):
+        records[f"/v1/servers/101/{section}-checks"] = {
+            "timestamp": 1794333540,
+            "checks": {"example": {"failed": True, "value": text}},
+        }
+    result, _ = run_with(records, lambda s: s.findings("101", sections=["health", "security"]))
+    health = result.data["reports"]["health"]["checks"]["example"]
+    security = result.data["reports"]["security"]["checks"]["example"]
+    assert health["value"] == value and health["value_unit"] == unit
+    assert health["failed"] is True
+    assert security["value"] is None and "value_unit" not in security
+
+
+@pytest.mark.parametrize(
+    "source,value",
+    [
+        (5, 5),
+        (False, False),
+        (None, None),
+        ("95.5% extra", None),
+        ("99999999999999999999.9%", None),
+        ({"x": 3}, None),
+    ],
+)
+def test_health_legacy_and_unstructured_values_keep_existing_policy(records, source, value):
+    records["/v1/servers/101/health-checks"] = {
+        "checks": {"example": {"failed": False, "value": source}},
+    }
+    result, _ = run_with(records, lambda s: s.findings("101", sections=["health"]))
+    check = result.data["reports"]["health"]["checks"]["example"]
+    assert check["value"] == value and "value_unit" not in check
+
+
+def test_production_summary_exposes_details_error_without_losing_other_reads(records):
+    records["/v1/servers/101/details"] = httpx2.Response(
+        422, json={"error": {"code": "invalid_source_data", "message": "private-detail"}}
+    )
+    result, _ = run_with(records, lambda s: s.findings("101"))
+    assert result.status == "partial"
+    assert result.data["component_errors"]["details"]["code"] == "invalid_source_data"
+    assert "health" in result.data["reports"]
+    assert "private-detail" not in result.model_dump_json()
+
+
+def test_production_empty_security_details_are_unavailable(records):
+    records["/v1/servers/101/details"] = {
+        "id": "101",
+        "health_checks": {"example": {"failed": False, "value": "95.5%"}},
+        "security_checks": {},
+    }
+    result, _ = run_with(records, lambda s: s.findings("101", sections=["summary"]))
+    assert result.status == "partial" and not result.coverage.complete
+    assert "check_summary_unavailable" in {warning.code for warning in result.warnings}
+
+
 def test_all_failures_are_errors_and_complete_is_false(records):
     for key in records:
         records[key] = httpx2.Response(503)
@@ -90,6 +150,7 @@ def test_recommendations_retain_ids_filter_names_and_done_caveat(records):
     assert "type" not in calls[0].url.params
     assert result.data["items"][0]["id"] == 601
     assert result.data["items"][0]["server_id"] == "101"
+    assert "Untrusted type label" not in result.model_dump_json()
     assert "workflow_status_only" in {w.code for w in result.warnings}
     assert "untrusted.example" not in result.model_dump_json()
 
@@ -105,6 +166,7 @@ def test_detail_cannot_use_foreign_parent_and_drops_sensitive_history(records):
     )
     assert "private@example.invalid" not in result.model_dump_json()
     assert "synthetic-secret" not in result.model_dump_json()
+    assert "Untrusted category label" not in result.model_dump_json()
     records["/v1/servers/101/recommendations/601"]["server_id"] = "202"
     result, _ = run_with(
         records,

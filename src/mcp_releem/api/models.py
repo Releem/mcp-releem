@@ -1,8 +1,8 @@
 """Selected upstream shapes; unknown fields never become public output automatically."""
 
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 
 class UpstreamModel(BaseModel):
@@ -12,6 +12,16 @@ class UpstreamModel(BaseModel):
 class CodeValue(UpstreamModel):
     id: int | str
     name: str | None = None
+
+
+def _code_id(value: object) -> int | str:
+    if type(value) is int:
+        return value
+    return CodeValue.model_validate(value).id
+
+
+# These fields used scalar integers before the production API introduced CodeValue.
+CodeId = Annotated[int | str, BeforeValidator(_code_id)]
 
 
 class Server(UpstreamModel):

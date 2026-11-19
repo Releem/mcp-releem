@@ -207,7 +207,8 @@ period is positive integer text plus m/h/d (bare means days), default 1d, maximu
 Explicit end overrides a valid period. period_days in 1,7,14,30,60,90 is a deprecated alias;
 never supply both selectors. Query timestamps require whole-second precision. avg_time_ms is
 milliseconds; sum_time_sec is seconds;
-optimization before_sum_time_ms/after_sum_time_ms are milliseconds. Keep original percentage
+optimization before_sum_time_ms/after_sum_time_ms are milliseconds. Optimization timestamp_status
+is Unix seconds, with zero indicating an unavailable status time. Keep original percentage
 names and denominators; filtering schema changes their population. Never equate calls and load.
 Metric catalog supplies units. Raw series <=31 days, trends <=366 days, maximum 500 points;
 interval is positive integer plus m/h/d. Aggregation requires interval or trends. Comparison
@@ -228,6 +229,7 @@ done does not prove application/effectiveness.
 Optimization codes: {code_table(STATUS_LABELS)}.
 Task status codes: {code_table(TASK_STATUSES)}.
 Task type codes: {code_table(TASK_TYPES)}.
+Task responses use type with id and name, or null. List filters use the type_id input.
 Check failed=null/absent means unknown, never passing or failing. Summaries include only
 explicit failures; catalog metadata is optional, and documentation links are never followed.
 Unknown upstream numeric codes remain numeric with an unknown/null label, not fabricated success.

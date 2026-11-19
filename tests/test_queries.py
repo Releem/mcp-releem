@@ -60,7 +60,8 @@ def test_optimization_status_is_not_invented_and_missing_plan_is_explicit(query_
     )
     assert detail.data["optimization"]["plan"]["available"] is False
     assert "plan_unavailable" in {w.code for w in detail.warnings}
-    assert detail.data["optimization"]["timestamp_status_ms"] == 1794268800123
+    assert detail.data["optimization"]["timestamp_status"] == 1794268800
+    assert "timestamp_status_ms" not in detail.data["optimization"]
 
 
 @pytest.mark.parametrize(

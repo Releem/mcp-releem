@@ -4,7 +4,7 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from .models import UpstreamModel
+from .models import CodeId, UpstreamModel
 
 
 class QueryRecord(UpstreamModel):
@@ -43,8 +43,8 @@ class ProposalPage(UpstreamModel):
 class Optimization(UpstreamModel):
     id: int
     server_id: int
-    status: int
-    timestamp_status_ms: int
+    status: CodeId
+    timestamp_status: int
     schema_name: str | None = None
     query_id: str | None = None
     before_calls: int | None = None

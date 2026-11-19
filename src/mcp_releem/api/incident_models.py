@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import Field
 
-from .models import UpstreamModel
+from .models import CodeId, CodeValue, UpstreamModel
 
 
 class EventSummary(UpstreamModel):
@@ -14,7 +14,7 @@ class EventSummary(UpstreamModel):
     name: str
     event_type_id: int
     event_type_name: str | None = None
-    event_severity: int | None = None
+    event_severity: CodeId | None = None
 
 
 class EventPage(UpstreamModel):
@@ -33,7 +33,7 @@ class Deadlock(UpstreamModel):
     timestamp: str
     database: str
     table: str
-    deadlock_type: int | None = None
+    deadlock_type: CodeId | None = None
     max_active_time: int | None = None
 
 
@@ -50,7 +50,7 @@ class DeadlockPage(UpstreamModel):
 class Task(UpstreamModel):
     id: int
     server_id: int
-    type_id: int | None = None
+    type: CodeValue | None = None
     status: int
     exit_code: int | None = None
     status_time: str | None = None

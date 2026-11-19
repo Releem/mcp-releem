@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 from pydantic import SecretStr
 
-DEFAULT_URL = "https://api2.dev.releem.com"
+DEFAULT_URL = "https://api2.releem.com"
 
 
 @dataclass(frozen=True)

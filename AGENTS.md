@@ -18,10 +18,12 @@ checks using RELEEM_SECRET_KEY in .env; never print it or retain customer payloa
 Shared authenticated HTTP now uses the hosted profile with per-request existing
 Releem API keys and no global customer credential. See README.md for hosted setup.
 No deployed HTTPS/client onboarding or production tenant-isolation claim is authorized.
-The user confirmed `https://api2.dev.releem.com` as the API base URL on
-2026-11-10; use it as the default with an administrator-controlled override.
-This supersedes its earlier documentation-only designation. Deployed behavior
-and self-hosted API parity remain separately unverified.
+The user requested `https://api2.releem.com` as the default API origin on
+2026-11-19. Stdio and standalone Compose allow an administrator-controlled
+override, including the former development default `https://api2.dev.releem.com`.
+Managed releases save the upstream origin with their image and Compose file.
+The migration ends with local verification and uncommitted changes. Production
+authentication, live contract parity, and managed cutover remain unverified.
 The user confirmed upstream naive timestamps are UTC on 2026-11-11; normalize
 with explicit provenance. Caller windows still require timezone offsets.
 Interval bucket anchoring remains unspecified; reject out-of-window samples.

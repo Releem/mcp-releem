@@ -14,6 +14,16 @@ if TYPE_CHECKING:
     from .diagnostics import Diagnostics
 
 
+def canonical_type(code: int | str) -> int | str:
+    if isinstance(code, str) and code.isascii():
+        name = code.lower()
+        if name == "unused_index_new":
+            return "unused_index"
+        if name in get_args(CheckType):
+            return name
+    return code
+
+
 def payload_status(value: str) -> str:
     if not value:
         return "absent"
@@ -41,9 +51,10 @@ def schema_report(
         result.warn(
             "source_timezone_utc", "Naive schema snapshot time normalized as owner-confirmed UTC"
         )
-    for row in response.items:
-        if request.check_type is not None and row.type != request.check_type:
-            raise APIError("invalid_source_data", "Schema check filter does not match source")
+    if request.check_type is not None and any(
+        canonical_type(row.type_id) != request.check_type for row in response.items
+    ):
+        raise APIError("invalid_source_data", "Schema check filter does not match source")
     filtered = request.schema_name is not None or request.check_type is not None
     state = (
         "not_run"
@@ -55,7 +66,9 @@ def schema_report(
     rows = []
     for index, check in enumerate(response.items):
         data_status = payload_status(check.data)
-        if check.type not in get_args(CheckType) or check.is_check not in {0, 1}:
+        source_type = check.type_id
+        check_type = canonical_type(source_type)
+        if check_type not in get_args(CheckType) or check.is_check not in {0, 1}:
             result.warn(
                 "unknown_schema_check", "Unknown check type/flag retained without interpretation"
             )
@@ -68,17 +81,18 @@ def schema_report(
                 "schema_flag_count_conflict", "Finding flag and count disagree; inspect source"
             )
         if index < request.schema_limit:
-            rows.append(
-                {
-                    "server_id": check.server_id,
-                    "type": check.type,
-                    "is_check": check.is_check,
-                    "has_finding": check.is_check == 1 if check.is_check in {0, 1} else None,
-                    "count_checks": check.count_checks,
-                    "data_status": data_status,
-                    "details_omitted": True,
-                }
-            )
+            row_data = {
+                "server_id": check.server_id,
+                "type": check_type,
+                "is_check": check.is_check,
+                "has_finding": check.is_check == 1 if check.is_check in {0, 1} else None,
+                "count_checks": check.count_checks,
+                "data_status": data_status,
+                "details_omitted": True,
+            }
+            if check_type != source_type:
+                row_data["source_type_id"] = source_type
+            rows.append(row_data)
     if response.items:
         result.coverage.complete = False
         result.coverage.truncated_fields.append("reports.schema.detail_payloads")

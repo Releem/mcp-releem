@@ -30,7 +30,7 @@ def incident_records():
         id=401,
         server_id=101,
         status=4,
-        type_id=6,
+        type={"id": 6, "name": "apply_schema_changes"},
         status_time=None,
         exit_code=2,
         details={"password": "private-details"},
@@ -171,12 +171,86 @@ def test_deadlock_unknown_duration_and_task_missing_report_visible(incident_reco
 
 def test_unknown_task_codes_are_not_fabricated_as_success(incident_records):
     task = incident_records["/v1/servers/101/tasks"]["items"][0]
-    task.update(status=999, type_id=999, status_label="succeeded", type="apply_schema_changes")
+    task.update(
+        status=999, status_label="succeeded", type={"id": 999, "name": "apply_schema_changes"}
+    )
     result, _ = run_incident(incident_records, "task_outcomes")
     row = result.data["items"][0]
-    assert row["status"] == 999 and row["type_id"] == 999
-    assert row["status_label"] is None and row["type"] is None
+    assert row["status"] == 999 and row["status_label"] is None
+    assert row["type"] == {"id": 999, "name": None}
     assert "unknown_task_code" in {w.code for w in result.warnings}
+
+
+def test_production_event_keeps_uint64_identity_and_omits_personal_state(incident_records):
+    event_id = "18446744073709551615"
+    event = incident_records["/v1/servers/101/events"]["items"][0]
+    event.update(
+        event_id=event_id,
+        event_type={"id": 1, "name": "Configuration applied"},
+        event_severity={"id": 2, "name": "Action Required"},
+        is_viewed=True,
+    )
+    detail = incident_records.pop("/v1/servers/101/events/801")
+    detail.update(event_id=int(event_id), is_viewed=True)
+    incident_records[f"/v1/servers/101/events/{event_id}"] = detail
+    result, _ = run_incident(incident_records, "events", **WINDOW)
+    assert result.error is None
+    row = result.data["items"][0]
+    assert row["event_id"] == event_id
+    assert row["event_severity"] == 2
+    assert "is_viewed" not in row
+    result, _ = run_incident(
+        incident_records, "events", sensitive=True, view="detail", event_id=event_id
+    )
+    assert result.data["event"]["event_id"] == event_id
+    assert "is_viewed" not in result.data["event"]
+    assert "private-body" not in result.model_dump_json()
+
+
+@pytest.mark.parametrize("code,expected", [({"id": 1, "name": "Display name"}, 1), (None, None)])
+def test_production_deadlock_code_and_personal_state(incident_records, code, expected):
+    incident_records["/v1/servers/101/deadlocks"]["items"][0].update(
+        deadlock_type=code, is_viewed=True
+    )
+    incident_records["/v1/servers/101/deadlocks/4"].update(deadlock_type=code, is_viewed=True)
+    listing, _ = run_incident(incident_records, "deadlocks", **WINDOW)
+    detail, _ = run_incident(
+        incident_records, "deadlocks", sensitive=True, view="detail", deadlock_id=4
+    )
+    for row in (listing.data["items"][0], detail.data["deadlock"]):
+        assert row["deadlock_type"] == expected
+        assert "is_viewed" not in row
+    assert "private-dump" not in detail.model_dump_json()
+
+
+@pytest.mark.parametrize(
+    "code,expected_id,label",
+    [
+        ({"id": 3, "name": "query_optimization"}, 3, "query_optimization"),
+        ({"id": 999, "name": "private-label"}, 999, None),
+        (None, None, None),
+    ],
+)
+def test_production_task_type_uses_id_and_existing_filter(
+    incident_records, code, expected_id, label
+):
+    for source in (
+        incident_records["/v1/servers/101/tasks"]["items"][0],
+        incident_records["/v1/servers/101/tasks/401"],
+    ):
+        source["type"] = code
+    filters = {"type_id": 3} if expected_id == 3 else {}
+    listing, calls = run_incident(incident_records, "task_outcomes", **filters)
+    if filters:
+        assert calls[0].url.params["type_id"] == "3"
+    detail, _ = run_incident(
+        incident_records, "task_outcomes", sensitive=True, view="detail", task_id=401
+    )
+    expected = {"id": expected_id, "name": label} if expected_id is not None else None
+    for row in (listing.data["items"][0], detail.data["task"]):
+        assert row["type"] == expected
+        assert "type_id" not in row
+    assert "private-" not in detail.model_dump_json()
 
 
 def test_capture_is_historical_and_contains_only_aggregate_sessions(incident_records):

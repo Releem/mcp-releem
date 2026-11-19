@@ -18,7 +18,7 @@ def test_configuration_requires_secret_without_echoing_it(tmp_path):
     with pytest.raises(ValueError, match="token"):
         config.Settings.from_env({})
     settings = config.Settings.from_env({"RELEEM_API_TOKEN": "synthetic-secret"})
-    assert settings.base_url == "https://api2.dev.releem.com"
+    assert settings.base_url == "https://api2.releem.com"
     assert "synthetic-secret" not in repr(settings)
     assert "synthetic-secret" not in json.dumps(settings.redacted())
     path = tmp_path / "token"
@@ -34,6 +34,17 @@ def test_configuration_requires_secret_without_echoing_it(tmp_path):
     ]:
         with pytest.raises(ValueError):
             config.Settings.from_env(env)
+
+
+def test_development_origin_remains_an_explicit_override():
+    config = module("config")
+    settings = config.Settings.from_env(
+        {
+            "RELEEM_API_TOKEN": "synthetic-secret",
+            "RELEEM_API_BASE_URL": "https://api2.dev.releem.com",
+        }
+    )
+    assert settings.base_url == "https://api2.dev.releem.com"
 
 
 def test_api_allowlist_parameters_and_sanitized_errors():

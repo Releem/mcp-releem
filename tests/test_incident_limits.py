@@ -1,11 +1,27 @@
 import asyncio
 
 import httpx2
+import pytest
 from mcp import Client
 from test_foundation import module
 from test_incidents import WINDOW, incident_records, run_incident
 
 __all__ = ["incident_records"]
+
+
+@pytest.mark.parametrize("detail", [False, True])
+def test_deadlock_view_state_failure_is_sanitized(incident_records, detail):
+    path = "/v1/servers/101/deadlocks/4" if detail else "/v1/servers/101/deadlocks"
+    incident_records[path] = httpx2.Response(
+        503,
+        json={"error": {"code": "deadlock_view_state_unavailable", "message": "private-error"}},
+    )
+    args = {"view": "detail", "deadlock_id": 4} if detail else WINDOW
+    result, _ = run_incident(incident_records, "deadlocks", sensitive=True, **args)
+    assert result.error.code == "dependency_unavailable"
+    assert result.error.upstream_status == 503
+    assert result.data is None
+    assert "private-error" not in result.model_dump_json()
 
 
 def test_event_duplicates_are_visible_and_next_offset_counts_source_rows(incident_records):
@@ -55,8 +71,11 @@ def test_capture_examination_is_bounded_and_commands_do_not_echo_injection(incid
 def test_task_filters_and_invalid_source_time_are_not_silent(incident_records):
     result, calls = run_incident(incident_records, "task_outcomes", status=4, type_id=6)
     assert calls[0].url.params["status"] == "4"
+    assert calls[0].url.params["type_id"] == "6"
     assert result.status == "partial"
     result, _ = run_incident(incident_records, "task_outcomes", status=1)
+    assert result.error.code == "invalid_source_data"
+    result, _ = run_incident(incident_records, "task_outcomes", type_id=3)
     assert result.error.code == "invalid_source_data"
     incident_records["/v1/servers/101/events"]["items"][0]["timestamp"] = "bad"
     result, _ = run_incident(incident_records, "events", **WINDOW)
@@ -92,6 +111,10 @@ def test_mcp_incident_dispatch_uses_the_discovered_contract(incident_records):
                     result = await mcp.call_tool(name, {"server_id": "101", **args})
                     assert not result.is_error
                     assert "private-" not in result.model_dump_json()
+                    if name == "task_outcomes":
+                        row = result.structured_content["data"]["task"]
+                        assert row["type"] == {"id": 6, "name": "apply_schema_changes"}
+                        assert "type_id" not in row
                 invalid = await mcp.call_tool(
                     "captured_sessions",
                     dict(

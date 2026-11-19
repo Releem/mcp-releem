@@ -40,6 +40,31 @@ def test_schema_findings_keep_counts_but_omit_arbitrary_payloads(schema_records)
     assert len(calls) == 1
 
 
+def test_schema_producer_alias_matches_canonical_filter(schema_records):
+    source = schema_records["/v1/servers/101/schema-checks"]["items"][0]
+    source["type"] = {"id": "UNUSED_INDEX_NEW", "name": "Unused Indexes"}
+    result, calls = run_with(
+        schema_records, lambda s: s.findings("101", sections=["schema"], check_type="unused_index")
+    )
+    row = result.data["reports"]["schema"]["items"][0]
+    assert row["type"] == "unused_index"
+    assert row["source_type_id"] == "UNUSED_INDEX_NEW"
+    assert calls[0].url.params["type"] == "unused_index"
+    assert "unknown_schema_check" not in {warning.code for warning in result.warnings}
+
+
+def test_unknown_typed_schema_code_is_preserved_and_does_not_match_filter(schema_records):
+    source = schema_records["/v1/servers/101/schema-checks"]["items"][0]
+    source["type"] = {"id": "future_check", "name": "Unused Indexes"}
+    result, _ = run_with(schema_records, lambda s: s.findings("101", sections=["schema"]))
+    assert result.data["reports"]["schema"]["items"][0]["type"] == "future_check"
+    assert "unknown_schema_check" in {warning.code for warning in result.warnings}
+    filtered, _ = run_with(
+        schema_records, lambda s: s.findings("101", sections=["schema"], check_type="unused_index")
+    )
+    assert filtered.data["component_errors"]["schema"]["code"] == "invalid_source_data"
+
+
 @pytest.mark.parametrize(
     "filtered,state", [(False, "no_findings_in_completed_run"), (True, "no_matches")]
 )

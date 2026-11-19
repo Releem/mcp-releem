@@ -113,10 +113,11 @@ class IncidentDiagnostics:
                         "invalid_source_data", "Incident timestamp falls outside requested window"
                     )
             if isinstance(request, TaskInput):
-                for field in ("status", "type_id"):
-                    expected = getattr(request, field)
-                    if expected is not None and getattr(record, field) != expected:
-                        raise APIError("invalid_source_data", "Task filter does not match source")
+                type_id = record.type.id if record.type is not None else None
+                if (request.status is not None and record.status != request.status) or (
+                    request.type_id is not None and type_id != request.type_id
+                ):
+                    raise APIError("invalid_source_data", "Task filter does not match source")
         for record in records[:cap]:
             if isinstance(request, EventInput):
                 if record.event_id in seen:

@@ -1,5 +1,7 @@
 """Full health/security report presentation, shared by finding sections."""
 
+import re
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from ..api.models import Report
@@ -7,6 +9,22 @@ from .results import DiagnosticResult
 
 if TYPE_CHECKING:
     from .diagnostics import Diagnostics
+
+
+HEALTH_VALUE = re.compile(r"(-?[0-9]{1,20}(?:\.[0-9])?)(%|min|s|count)")
+
+
+def health_measurement(text: str) -> tuple[int | float, str] | None:
+    match = HEALTH_VALUE.fullmatch(text)
+    if match is None:
+        return None
+    number, unit = match.groups()
+    if "." not in number:
+        return int(number), unit
+    value = float(number)
+    if Decimal(str(value)) != Decimal(number):
+        return None
+    return value, unit
 
 
 def apply_report(context: "Diagnostics", result: DiagnosticResult, op: str, report: Report) -> None:
@@ -27,7 +45,10 @@ def apply_report(context: "Diagnostics", result: DiagnosticResult, op: str, repo
                 "unknown_check_severity",
                 "Unrecognized severity is upstream text, not a mapped rating",
             )
-        if not isinstance(check["value"], (int, float, bool, type(None))):
+        value = check["value"]
+        if op == "health" and isinstance(value, str) and (measurement := health_measurement(value)):
+            check["value"], check["value_unit"] = measurement
+        elif not isinstance(value, (int, float, bool, type(None))):
             check["value"] = None
             result.coverage.complete = False
             result.redaction["omitted_check_values"] = (

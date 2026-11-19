@@ -156,16 +156,22 @@ class QueryDiagnostics:
         self, record: Optimization, result: DiagnosticResult, *, detail: bool
     ) -> dict[str, Any]:
         row = record.model_dump(exclude={"recommendations"})
-        row["status_label"] = STATUS_LABELS.get(record.status)
+        label = STATUS_LABELS.get(record.status) if isinstance(record.status, int) else None
+        row["status_label"] = label
         row["has_error"] = bool(record.error_message) or record.error_code not in (None, 0)
         result.warn(
             "workflow_status_only",
             "Optimization status is workflow state, not proof of safe application or benefit",
         )
-        if record.status not in STATUS_LABELS:
+        if record.timestamp_status == 0:
+            result.warn(
+                "optimization_status_time_unavailable",
+                "The production API reports zero when the optimization status time is unavailable",
+            )
+        if label is None:
             result.warn(
                 "unknown_optimization_status",
-                "Unknown numeric status retained without an invented label",
+                "Unknown status code retained without an invented label",
             )
         if detail:
             row["plan"] = summarize_plan(record.query_explain)

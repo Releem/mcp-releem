@@ -16,6 +16,7 @@ def fleet_records(records):
 def test_fleet_is_explicit_and_checks_accessible_server_inventory(fleet_records):
     result, calls = run_with(fleet_records, lambda s: s.recommendations(scope="fleet", limit=1))
     assert result.data["items"][0]["server_id"] == "101"
+    assert "Untrusted type label" not in result.model_dump_json()
     assert result.scope == {"selection": "fleet"}
     assert [c.url.path for c in calls] == ["/v1/servers", "/v1/servers/recommendations"]
     assert calls[1].url.params["limit"] == "1"

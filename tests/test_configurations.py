@@ -99,3 +99,32 @@ def test_latest_preserves_newest_state_even_for_older_logical_configuration(conf
     assert result.data["items"][0]["configuration_id"] == 2
     assert result.data["items"][0]["configuration_status_id"] == 5
     assert any(w.code == "configuration_state_only" for w in result.warnings)
+
+
+@pytest.mark.parametrize("view", ["history", "latest", "detail"])
+@pytest.mark.parametrize("code", [1, "future"])
+def test_configuration_retains_production_status_id(configurations, view, code):
+    status = {"id": code, "name": "Upstream display name"}
+    configurations["/v1/servers/101/configurations"]["items"][0]["applied_status"] = status
+    configurations["/v1/servers/101/configurations/5"]["applied_status"] = status
+    detail = {"configuration_status_id": 5} if view == "detail" else {}
+    result, _ = run_with(configurations, lambda s: s.configurations("101", view=view, **detail))
+    assert result.error is None
+    row = result.data["configuration"] if detail else result.data["items"][0]
+    assert row["applied_status"] == code
+    assert "Upstream display name" not in result.model_dump_json()
+
+
+@pytest.mark.parametrize("status,expected", [(None, 0), ({"name": "Missing ID"}, None)])
+def test_configuration_detail_default_and_malformed_status(configurations, status, expected):
+    source = configurations["/v1/servers/101/configurations/5"]
+    source.pop("applied_status")
+    if status is not None:
+        source["applied_status"] = status
+    result, _ = run_with(
+        configurations, lambda s: s.configurations("101", view="detail", configuration_status_id=5)
+    )
+    if expected is None:
+        assert result.error.code == "invalid_source_data"
+    else:
+        assert result.data["configuration"]["applied_status"] == expected

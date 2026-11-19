@@ -25,6 +25,7 @@ FILES = (
     ".github/workflows/deploy.yml",
     "tests/fixtures/openapi/releem-openapi-2026-11-10.json",
     "tests/fixtures/openapi/releem-openapi-2026-11-11.json",
+    "tests/fixtures/openapi/releem-openapi-production-2026-11-19.json",
 )
 TREES = ("src/mcp_releem", "tests", "tools/release", "tools/containers")
 SUFFIXES = {".py", ".sh"}

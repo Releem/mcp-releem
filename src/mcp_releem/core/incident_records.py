@@ -68,12 +68,14 @@ def record_data(record: Any, result: DiagnosticResult) -> dict[str, Any]:
                 "deadlock_text_omitted", "Raw dump and transaction text omitted for privacy"
             )
     elif isinstance(record, Task):
-        row = record.model_dump(exclude={"output", "error"})
+        row = record.model_dump(exclude={"output", "error", "type"})
+        type_id = record.type.id if record.type is not None else None
+        type_label = TASK_TYPES.get(type_id) if isinstance(type_id, int) else None
         row.update(
             status_label=TASK_STATUSES.get(record.status),
-            type=TASK_TYPES.get(record.type_id) if record.type_id is not None else None,
+            type={"id": type_id, "name": type_label} if type_id is not None else None,
         )
-        if record.status not in TASK_STATUSES or record.type_id not in TASK_TYPES:
+        if record.status not in TASK_STATUSES or type_label is None:
             result.warn("unknown_task_code", "Unknown task codes retained without invented labels")
         row["status_time"] = normalize_time(record.status_time)
         if isinstance(record, TaskDetail):

@@ -167,9 +167,12 @@ Configure GitHub deployment:
    Replace `main` with the actual default branch. Commit and merge the change.
    Required environment reviewers will still pause deployment for approval;
    omit that requirement if unattended deployment is intended.
-6. Confirm an authenticated client read after deployment. During a maintenance
-   window, reboot the host and repeat the public checks and authenticated read
-   to verify recovery. Both services use `unless-stopped`; health failures alone
+6. Confirm the running upstream with
+   `sudo /opt/mcp-releem/stack exec --no-TTY mcp mcp-releem --transport streamable-http --check`.
+   Then initialize an authenticated MCP client with a key for that upstream,
+   run `servers`, and verify its inventory and a representative populated read.
+   During a maintenance window, reboot the host and repeat the public checks
+   and authenticated read. Both services use `unless-stopped`; health failures alone
    do not trigger a restart.
 
 Inspect the deployed stack without changing it:
@@ -180,15 +183,13 @@ ssh ubuntu@40.160.8.37 'sudo /opt/mcp-releem/stack logs --tail 30 mcp cloudflare
 ```
 
 The deployment helper checks local/public health and authentication denial and
-attempts to recover the previous application release on failure. Cloudflare
-settings are managed separately. To roll back manually, inspect the previous
-release first, then run on the server with its actual immutable image reference:
+attempts to recover the previous application release on failure. Recovery uses
+the saved image, Compose file, and upstream settings. To roll back manually,
+inspect the previous release and run the matching reviewed recovery and activation
+scripts on the managed host from the directory containing those scripts.
 
 ```sh
-sudo sh /opt/mcp-releem/setup/activate.sh --dry-run \
-  '<PREVIOUS_IMAGE_DIGEST>' /opt/mcp-releem/previous/compose.yaml
-sudo sh /opt/mcp-releem/setup/activate.sh --apply \
-  '<PREVIOUS_IMAGE_DIGEST>' /opt/mcp-releem/previous/compose.yaml
+sudo sh ./recover.sh ./activate.sh
 ```
 
 ## Local HTTP setup with Codex and the real API
@@ -207,7 +208,7 @@ Codex -- Bearer key --> local MCP -- Releem-Secret-Key --> Releem API
 
 ```sh
 export RELEEM_MCP_PUBLIC_URL=https://mcp.example.invalid/mcp
-export RELEEM_API_BASE_URL=https://api2.dev.releem.com
+export RELEEM_API_BASE_URL=https://api2.releem.com
 export MCP_RELEEM_HOST_PORT=58000
 export MCP_RELEEM_IMAGE=mcp-releem:local-http
 
@@ -224,7 +225,9 @@ setup. Remote hosting requires real HTTPS ingress.
 **Do not put your API key in the server's environment or mount a key file.**
 Compose's `--env-file /dev/null` prevents loading the checkout's `.env`; it does
 not pass an environment file to MCP. Upstream calls use HTTPS to
-`https://api2.dev.releem.com`, the owner-confirmed API origin.
+`https://api2.releem.com`, the default upstream. To connect to the development
+API in a standalone setup, explicitly set
+`RELEEM_API_BASE_URL=https://api2.dev.releem.com` and use a key for that upstream.
 
 ### 2. Save the Codex connection and key
 
@@ -484,8 +487,12 @@ limitations. It contains no customer evidence or configuration/secrets.
 |---|---|---|
 | `analytics` (default) | `period`: positive integer string with optional m/h/d suffix (bare means days), default `1d`, maximum 90 days locally. Optional offset-aware whole-second `start_date`/`end_date`; end requires start, overrides a valid period, and span ≤90 days. Deprecated `period_days` alias: 1, 7, 14, 30, 60 or 90; cannot combine selectors. UTC timezone, schema/RE2 filter, documented sort and order; limit 1–100, default 20 | Effective upstream half-open window, query fingerprints, call counts, latency in ms, cumulative seconds and original percentages. Nulls remain null. Percentages use all queries matching filters, not only returned rows. |
 | `proposals` | `schema_name` and `query_id` required; limit 1–100 locally | Existing proposals from the latest analysis containing them; no new analysis is created. |
-| `optimizations` | Optional schema filter; limit 1–100 | Newest saved optimization records, numeric workflow status and before/after measurements with original units. Unknown statuses retain their code. |
+| `optimizations` | Optional schema filter; limit 1–100 | Newest saved optimization records, workflow status IDs and before/after measurements with original units. Unknown statuses retain their code. |
 | `optimization` | `optimization_id` required; no list filters | One same-server record, up to 20 matching linked proposals, existing plan availability and selected facts. |
+
+Optimization results return `timestamp_status` in Unix seconds. Zero carries
+the warning `optimization_status_time_unavailable`. Clients that previously
+read `timestamp_status_ms` must use the seconds field.
 
 Examples (identifiers are placeholders):
 
@@ -579,10 +586,15 @@ removed only within the fetched page. If output budgeting drops rows, the cursor
 is cleared and the caller must narrow the window. Deadlocks have a cap, not a
 traversal cursor; unknown duration `-1`/null is retained with seconds as the unit.
 
-Task lists accept nonnegative `status`/`type_id` filters. Unknown numeric codes
-are retained with null labels. Missing final reports, nullable exit codes and
-output/error availability remain visible; successful status alone does not prove
-effective settings or improved performance. There is no automatic polling/retry.
+Task lists accept nonnegative `status` and `type_id` filters. Task results return
+`type` as an object with `id` and `name`, or null when the type is unavailable.
+Clients that previously read the response field `type_id` must use `type.id`.
+Unknown codes retain their IDs with null names. Missing final reports, nullable
+exit codes and output/error availability remain visible. Successful status alone
+does not prove effective settings or improved performance.
+
+Use an upstream that serves these production response shapes, including when
+`RELEEM_API_BASE_URL` is set explicitly.
 
 `captured_sessions` defaults to `mode=latest`, which omits upstream time bounds.
 `mode=window` requires a paired window of at most 24 hours. Limit is 1–20,
@@ -643,8 +655,9 @@ revocation, streaming and real reboot verification remain release gates.
 
 ## Configuration and result semantics
 
-- `RELEEM_API_BASE_URL`: default above; administrator-controlled HTTPS origin
-  override, no userinfo/query/fragment/base path. Redirects are refused.
+- `RELEEM_API_BASE_URL` defaults to `https://api2.releem.com`. The administrator
+  can set an HTTPS origin without userinfo, query, fragment, or base path.
+  Redirects are refused.
 - `RELEEM_API_CA_BUNDLE`: optional enterprise CA file. TLS verification remains on.
 - `HTTPS_PROXY`: optional administrator proxy; proxy credentials are never printed.
   Automatic environment proxy discovery and `NO_PROXY` are not used in this slice.
@@ -667,7 +680,9 @@ is explicitly incomplete. Narrow filters when rows/text are omitted. No automati
 retries, default server selection or evidence-link fetching occur.
 
 Default field allowlists omit users, IPs, raw evidence links, arbitrary review
-payloads and non-scalar check values. Text screening removes known credential,
+payloads and non-scalar check values. For documented health measurements such as
+`95.5%`, the result keeps the numeric `value` and adds `value_unit`
+without rescaling. Text screening removes known credential,
 email and IPv4 patterns and suppresses recognized SQL-bearing text. Screening
 cannot establish anonymity: hostnames/object names and unrecognized free-form
 sensitive content can still be confidential. Keep model/client access restricted.
@@ -686,9 +701,9 @@ tenant isolation, read-only enforcement and deployment recovery remain covered.
 Stdio contract tests use a bounded 15-second request budget to tolerate CPU
 contention on self-hosted runners; they do not establish a 5-second latency guarantee.
 
-Local planning/investigation notes in `docs/` are ignored and untracked. The two
-public OpenAPI captures required by tests and release provenance are versioned
-under [tests/fixtures/openapi](tests/fixtures/openapi). Python build outputs,
+Local planning/investigation notes in `docs/` are ignored and untracked.
+The tests and release provenance use the historical and production OpenAPI
+captures in [tests/fixtures/openapi](tests/fixtures/openapi). Python build outputs,
 coverage reports, caches, credentials and `.agent/` stay out of Git.
 
 All dependency installation/checks should run in containers. The base image is
