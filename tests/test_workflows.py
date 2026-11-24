@@ -38,6 +38,8 @@ def test_static_prompt_and_resource_discovery_and_rendering():
                 assert "show query beside query_id" in text
                 assert "partial prefix" in text and "query_status" in text
                 assert "schema_name and query_id" in text
+            if prompt.name == "incident_changes":
+                assert "applied_changes" in text and "rollback status" in text
             assert len(text) < 6500
         resources = await server.list_resources()
         assert [str(item.uri) for item in resources] == ["releem://reference"]
@@ -53,6 +55,8 @@ def test_static_prompt_and_resource_discovery_and_rendering():
             "hourly",
             "configuration_status_id",
             "query_status=available",
+            "applied_changes",
+            "variable_changes.remaining",
             "budget_exhausted",
         ]:
             assert term in content

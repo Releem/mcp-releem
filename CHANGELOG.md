@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.1.0 — unreleased private pilot
+## 0.1.0
+
+- Show screened old and new setting values in configuration detail, including
+  outstanding targets. Add a bounded, date-sorted view of recommended settings
+  that reached their targets, with partial application and rollback evidence.
 
 - Add `query` and `query_status` to ranked query analytics rows so clients can
   show screened, upstream-normalized SQL alongside the fingerprint and metrics,

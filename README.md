@@ -317,7 +317,21 @@ For detail, supply the server and recommendation IDs. The result includes the av
 
 ### Configuration states and metrics
 
-Use `configurations` with `history` (default, limit 1–100, default 20), `latest`, or `detail`. Detail requires the state’s `configuration_status_id`. A logical configuration can have several recorded states. The result includes application periods and restart status. Variable values and raw configuration are omitted.
+Use `configurations` with `history` (default, limit 1–100, default 20) or `latest` to find state IDs. Use `detail` with a `configuration_status_id` to see application metadata and `variable_changes`. A logical configuration can have several recorded states.
+
+| Detail comparison | What the values show |
+| --- | --- |
+| `recorded` | Original and last recorded values for changed settings |
+| `proposed` | Original and target values for proposed changes |
+| `remaining` | Last recorded and target values that differ on an unapplied or partially applied state |
+
+For example, if `max_connections` started at 100, reached 150, and had a target of 200, the recorded change is 100 → 150 and the remaining change is 150 → 200. The comparison reports missing values, withheld rows and output truncation. Raw snapshots, recommendation text and unreviewed settings stay private.
+
+**Which Releem recommendations were applied?** Call `configurations` with `view="applied_changes"` and the server ID. Each row includes the application timestamp, configuration state ID, variable, old value, new value and application status. The stored value must have changed and reached the recommended target. A rolled-back state retains its historical row when the stored values support it, with application status 3 and the rollback timestamp when available. The application date is a UTC timestamp for the configuration state.
+
+The optional `limit` sets how many states to scan (default 10, maximum 20). The view sorts matching rows by application date, newest first within the scan. The upstream history is ordered by state ID and has no cursor, so the scan cannot establish all-time coverage. The report includes counts for scanned states, detail reads, insufficient evidence and withheld rows.
+
+**Which recommendations remain open?** List `recommendations` for the server with `source_type="configuration"`, `status="new"` and `sort="created_at_desc"`. Confirm the recommendation is still open in its detail and follow its typed configuration reference. Show the recommendation creation date and read `variable_changes.remaining` from that configuration state. These are last recorded values. If the reference or comparison is missing, report that gap.
 
 Start with the `metrics` catalog to find metric names, IDs and units (limit 1–100, default 20).
 

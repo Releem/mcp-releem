@@ -25,9 +25,13 @@ def instant(value: str, *, source_utc: bool = False) -> datetime:
 
 class ConfigurationInput(Input):
     server_id: ServerId
-    view: Literal["history", "latest", "detail"] = "history"
+    view: Literal["history", "latest", "detail", "applied_changes"] = "history"
     configuration_status_id: PositiveId | None = None
     limit: Limit = 20
+
+    @property
+    def scan_limit(self) -> int:
+        return self.limit if "limit" in self.model_fields_set else 10
 
     @model_validator(mode="after")
     def fields_for_view(self) -> Self:
@@ -35,13 +39,15 @@ class ConfigurationInput(Input):
             {"configuration_status_id"}
             if self.view == "detail"
             else {"limit"}
-            if self.view == "history"
+            if self.view in {"history", "applied_changes"}
             else set()
         )
         if self.model_fields_set - allowed:
             raise ValueError("Arguments do not apply to the configuration view")
         if self.view == "detail" and self.configuration_status_id is None:
             raise ValueError("Detail requires a configuration state ID")
+        if self.view == "applied_changes" and self.scan_limit > 20:
+            raise ValueError("Applied changes scans at most 20 configuration states")
         return self
 
 

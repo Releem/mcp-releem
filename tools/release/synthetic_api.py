@@ -37,9 +37,56 @@ class SyntheticAPI:
             "type_id": 3,
             "category_id": 3,
         }
+        config_id = 501 if sid == "101" else 601
+        state = {
+            "server_id": int(sid),
+            "configuration_status_id": config_id,
+            "configuration_id": 401,
+            "applied_status": {"id": 2, "name": "Partially applied"},
+            "applied_timestamp": 1794481200,
+            "timestamp": 1794481100,
+            "configuration_timestamp": 1794481000,
+            "is_first": False,
+        }
+        older = {**state, "configuration_status_id": config_id + 1, "applied_timestamp": 1794480000}
+        detail = {
+            **state,
+            "variables_orig": {"max_connections": 100, "table_open_cache": 2000},
+            "source_variables": {"max_connections": 150, "table_open_cache": 4000},
+            "variables": [
+                {"name": "max_connections", "value": "200"},
+                {"name": "table_open_cache", "value": "4000"},
+            ],
+            "history": {
+                "timestamp": 1794481100,
+                "performance_score": 65,
+                "config_recommendations": "synthetic-configuration-canary",
+            },
+        }
+        open_rec = {
+            **rec,
+            "id": rec["id"] + 10,
+            "source_id": str(config_id),
+            "status": "new",
+            "created_at": "2026-11-11T10:00:00Z",
+        }
+        configs_path = f"/v1/servers/{sid}/configurations"
         paths: dict[str, Any] = {
             "/v1/servers": [server],
             f"/v1/servers/{sid}": server,
+            configs_path: {"items": [older, state]},
+            f"{configs_path}/{config_id}": detail,
+            f"{configs_path}/{config_id + 1}": {
+                **detail,
+                **older,
+                "variables_orig": {"max_connections": 90},
+                "source_variables": {"max_connections": 100},
+                "variables": [{"name": "max_connections", "value": "100"}],
+            },
+            f"/v1/servers/{sid}/recommendations/{open_rec['id']}": {
+                **open_rec,
+                "evidence": {"href": f"{configs_path}/{config_id}"},
+            },
             f"/v1/servers/{sid}/details": {"id": sid, "health_checks": {}, "security_checks": {}},
             f"/v1/servers/{sid}/health-checks": {"timestamp": None, "checks": {}},
             f"/v1/servers/{sid}/security-checks": {
@@ -67,6 +114,13 @@ class SyntheticAPI:
             },
             f"/v1/servers/{sid}/recommendations/{rec['id']}": rec,
         }
+        if (
+            request.url.path == f"/v1/servers/{sid}/recommendations"
+            and request.url.params.get("status") == "new"
+        ):
+            return httpx2.Response(
+                200, json={"items": [open_rec], "total": 1, "limit": 20, "offset": 0}
+            )
         if request.url.path == f"/v1/servers/{sid}/query-analytics":
             # Fixed contract examples deliberately independent of production parsing.
             windows = {

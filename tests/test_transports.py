@@ -35,6 +35,7 @@ async def exercise(target, mode, server_id, journey):
         assert "period" in advertised.input_schema["properties"]
         assert "end_date" in advertised.input_schema["properties"]
         await journey.check_ranked_queries(client, server_id)
+        await journey.check_configuration_changes(client, server_id)
         empty = await client.call_tool("query_evidence", {"server_id": server_id, "period_days": 7})
         assert not empty.is_error and empty.structured_content["status"] == "no_data"
         assert empty.structured_content["data"]["items"] == []
@@ -69,6 +70,7 @@ def test_authenticated_http_journey(journey):
     assert report["protocol_modes"] == ["legacy", "2026-07-28"]
     assert report["two_account_isolation"] is True
     assert report["normalized_queries"] is True
+    assert report["configuration_changes"] is True
     assert report["revocation"] is True
     assert report["missing_evidence_visible"] is True
     assert report["recommendation_workflow"] is True

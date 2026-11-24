@@ -38,6 +38,51 @@ async def check_ranked_queries(client: Client, server_id: str) -> None:
         assert value not in query.model_dump_json() and value not in denied.model_dump_json()
 
 
+async def check_configuration_changes(client: Client, server_id: str) -> None:
+    args = {"server_id": server_id}
+    history = await client.call_tool("configurations", args)
+    states = history.structured_content["data"]["items"]
+    state_id = states[1]["configuration_status_id"]
+    detail = await client.call_tool(
+        "configurations", {**args, "view": "detail", "configuration_status_id": state_id}
+    )
+    assert not detail.is_error
+    changes = detail.structured_content["data"]["configuration"]["variable_changes"]
+    assert changes["recorded"]["items"][0]["new_value"] == "150"
+    assert changes["remaining"]["items"] == [
+        {"name": "max_connections", "last_recorded_value": "150", "recommended_value": "200"}
+    ]
+    applied = await client.call_tool("configurations", {**args, "view": "applied_changes"})
+    assert not applied.is_error
+    report = applied.structured_content
+    assert report["schema_version"] == "1" and not report["coverage"]["complete"]
+    assert [(row["configuration_status_id"], row["name"]) for row in report["data"]["items"]] == [
+        (state_id, "table_open_cache"),
+        (state_id + 1, "max_connections"),
+    ]
+
+    open_recs = await client.call_tool(
+        "recommendations",
+        {**args, "source_type": "configuration", "status": "new", "sort": "created_at_desc"},
+    )
+    open_rec = open_recs.structured_content["data"]["items"][0]
+    assert open_rec["created_at"] and open_rec["status"] == "new"
+    recommendation = await client.call_tool(
+        "recommendations", {**args, "view": "detail", "recommendation_id": open_rec["id"]}
+    )
+    reference = recommendation.structured_content["data"]["recommendation"]["evidence_reference"]
+    linked = await client.call_tool(reference["tool"], reference["arguments"])
+    assert linked.structured_content["data"]["configuration"]["variable_changes"] == changes
+
+    other_id = "202" if server_id == "101" else "101"
+    denied = await client.call_tool(
+        "configurations", {"server_id": other_id, "view": "applied_changes"}
+    )
+    assert denied.is_error and denied.structured_content["data"] is None
+    for response in (detail, applied, linked, denied):
+        assert "synthetic-configuration-canary" not in response.model_dump_json()
+
+
 @asynccontextmanager
 async def listener(api: SyntheticAPI) -> Any:
     sock = socket.socket()
@@ -81,6 +126,7 @@ async def exercise() -> dict[str, Any]:
                     assert findings.structured_content["status"] == "partial"
                     assert findings.structured_content["warnings"]
                     await check_ranked_queries(client, "101")
+                    await check_configuration_changes(client, "101")
                     for bounds in (
                         {"period_days": 7},
                         {"start_date": "2026-11-11T10:00:00Z", "end_date": "2026-11-11T10:10:00Z"},
@@ -128,6 +174,7 @@ async def exercise() -> dict[str, Any]:
                     streamable_http_client(url, http_client=http), mode=mode
                 ) as client:
                     await check_ranked_queries(client, "202")
+                    await check_configuration_changes(client, "202")
                     assert not any(
                         key == KEY_B and "/servers/101" in path for key, path in api.calls
                     )
@@ -167,6 +214,7 @@ async def exercise() -> dict[str, Any]:
         "recommendation_workflow": True,
         "current_query_windows": True,
         "normalized_queries": True,
+        "configuration_changes": True,
         "dependency_failure_visible": True,
         "data": "synthetic only",
         "transport": "loopback TCP",

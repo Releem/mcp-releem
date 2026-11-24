@@ -165,7 +165,12 @@ def production_examples():
         "details": {**server, "health_checks": checks, "security_checks": {}},
         "health": {"checks": checks, "timestamp": 1736937000},
         "configurations": {"items": [state]},
-        "configuration": {**state, "variables": []},
+        "configuration": {
+            **state,
+            "variables": [],
+            "variables_orig": {"max_connections": 100},
+            "source_variables": {"max_connections": 150},
+        },
         "events": {"items": [event]},
         "event": {
             "event_id": int(event["event_id"]),

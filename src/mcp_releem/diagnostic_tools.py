@@ -19,15 +19,15 @@ def register(
     @server.tool(annotations=annotations)
     async def configurations(
         server_id: str,
-        view: Literal["history", "latest", "detail"] = "history",
+        view: Literal["history", "latest", "detail", "applied_changes"] = "history",
         configuration_status_id: int | None = None,
-        limit: int = 20,
+        limit: int | None = None,
     ) -> CallToolResult:
-        """Read configuration states/history; detail uses state ID, values are privacy-minimized."""
+        """Read configuration history, variable changes, or date-sorted applied changes."""
         arguments: dict[str, Any] = {"view": view}
         if view == "detail":
             arguments["configuration_status_id"] = configuration_status_id
-        elif view == "history":
+        elif view in {"history", "applied_changes"} and limit is not None:
             arguments["limit"] = limit
         return present(await active().configurations(server_id, **arguments))
 

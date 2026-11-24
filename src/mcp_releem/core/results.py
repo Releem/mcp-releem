@@ -69,6 +69,8 @@ def fit(result: DiagnosticResult, budget: int) -> DiagnosticResult:
             if result.status == "ok":
                 result.status = "partial"
             continue
+        if _trim_configuration_row(data, result):
+            continue
         return DiagnosticResult(
             status="error",
             scope=result.scope,
@@ -81,3 +83,21 @@ def fit(result: DiagnosticResult, budget: int) -> DiagnosticResult:
             ],
         )
     return result
+
+
+def _trim_configuration_row(data: dict[str, Any], result: DiagnosticResult) -> bool:
+    changes = data.get("configuration", {}).get("variable_changes", {})
+    candidates = [(name, comparison) for name, comparison in changes.items() if comparison["items"]]
+    if not candidates:
+        return False
+    name, comparison = max(candidates, key=lambda entry: len(entry[1]["items"]))
+    comparison["items"].pop()
+    comparison["omitted"] += 1
+    comparison["status"] = "partial"
+    path = f"configuration.variable_changes.{name}.items"
+    if path not in result.coverage.truncated_fields:
+        result.coverage.truncated_fields.append(path)
+    result.coverage.complete = False
+    result.status = "partial"
+    result.warn("output_truncated", "Configuration change rows exceeded the output budget")
+    return True

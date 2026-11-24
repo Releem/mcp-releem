@@ -1,5 +1,7 @@
 """Configuration and server-scoped metric response allowlists."""
 
+from typing import Any
+
 from pydantic import Field
 
 from .models import CodeId, UpstreamModel
@@ -15,6 +17,13 @@ class ConfigurationHistory(UpstreamModel):
     performance_score: int
     performance_score_group: str | None = None
     recommendations_changes: float | None = None
+    config_recommendations: Any = Field(default=None, exclude=True, repr=False)
+
+    @property
+    def has_recommendation(self) -> bool:
+        return isinstance(self.config_recommendations, str) and bool(
+            self.config_recommendations.strip()
+        )
 
 
 class Variable(UpstreamModel):
@@ -39,6 +48,8 @@ class ConfigurationState(UpstreamModel):
 class ConfigurationDetail(ConfigurationState):
     applied_status: CodeId = 0
     variables: list[Variable]
+    variables_orig: Any = Field(default=None, exclude=True, repr=False)
+    source_variables: Any = Field(default=None, exclude=True, repr=False)
     history: ConfigurationHistory | None = None
     period: Period | None = None
     rollback_timestamp: int | None = None
