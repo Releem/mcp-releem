@@ -85,8 +85,35 @@ class SyntheticAPI:
             )
             if window is None:
                 return httpx2.Response(400, json={"error": {"code": "invalid_time_range"}})
+            items = []
+            if window == windows[("10m", None, None)]:
+                query_id, query = (
+                    ("abc123", "SELECT * FROM example_orders WHERE id = ?")
+                    if sid == "101"
+                    else ("def456", "SELECT amount FROM example_payments WHERE account_id = ?")
+                )
+                items = [
+                    {
+                        "rid": f"run-{sid}",
+                        "schema_name": "example",
+                        "query_id": query_id,
+                        "query": query,
+                        "query_text": "SELECT 'raw-only-canary'",
+                        "calls": 20,
+                        "avg_time_ms": 150,
+                        "sum_time_sec": 3,
+                        "sum_time_perc_total": 25,
+                    },
+                    {
+                        "rid": f"run-{sid}",
+                        "schema_name": "example",
+                        "query_id": f"raw-{sid}",
+                        "query_text": "SELECT 'raw-only-canary'",
+                        "calls": 2,
+                    },
+                ]
             return httpx2.Response(
-                200, json={"start_time": window[0], "end_time": window[1], "items": []}
+                200, json={"start_time": window[0], "end_time": window[1], "items": items}
             )
         if request.url.path not in paths:
             return httpx2.Response(404)

@@ -14,6 +14,30 @@ from synthetic_api import KEY_A, KEY_B, SyntheticAPI
 from synthetic_hosted import fixture
 
 
+async def check_ranked_queries(client: Client, server_id: str) -> None:
+    expected = {
+        "101": ("abc123", "SELECT * FROM example_orders WHERE id = ?"),
+        "202": ("def456", "SELECT amount FROM example_payments WHERE account_id = ?"),
+    }
+    query = await client.call_tool("query_evidence", {"server_id": server_id, "period": "10m"})
+    assert not query.is_error
+    data = query.structured_content["data"]
+    assert data["window_bounds"] == "[start_time,end_time)"
+    ranked, raw_only = data["items"]
+    assert (ranked["query_id"], ranked["query"]) == expected[server_id]
+    assert ranked["query_status"] == "available" and ranked["sum_time_sec"] == 3
+    assert raw_only["query_id"] == f"raw-{server_id}" and raw_only["calls"] == 2
+    assert raw_only["query"] is None and raw_only["query_status"] == "unavailable"
+    assert "raw-only-canary" not in query.model_dump_json()
+
+    other_id = "202" if server_id == "101" else "101"
+    denied = await client.call_tool("query_evidence", {"server_id": other_id, "period": "10m"})
+    assert denied.is_error
+    assert denied.structured_content["error"]["code"] in {"forbidden", "not_found_or_inaccessible"}
+    for value in expected[other_id]:
+        assert value not in query.model_dump_json() and value not in denied.model_dump_json()
+
+
 @asynccontextmanager
 async def listener(api: SyntheticAPI) -> Any:
     sock = socket.socket()
@@ -56,8 +80,8 @@ async def exercise() -> dict[str, Any]:
                     assert not findings.is_error
                     assert findings.structured_content["status"] == "partial"
                     assert findings.structured_content["warnings"]
+                    await check_ranked_queries(client, "101")
                     for bounds in (
-                        {"period": "10m"},
                         {"period_days": 7},
                         {"start_date": "2026-11-11T10:00:00Z", "end_date": "2026-11-11T10:10:00Z"},
                     ):
@@ -69,6 +93,9 @@ async def exercise() -> dict[str, Any]:
                             query.structured_content["data"]["window_bounds"]
                             == "[start_time,end_time)"
                         )
+                        if "period_days" in bounds:
+                            assert query.structured_content["status"] == "no_data"
+                            assert query.structured_content["data"]["items"] == []
                     ambiguous = await client.call_tool(
                         "query_evidence", {"server_id": "101", "period": "1d", "period_days": 7}
                     )
@@ -94,6 +121,16 @@ async def exercise() -> dict[str, Any]:
                     )
                     assert (await client.call_tool("execute_change", {})).is_error
             # Independent customer uses the same URL and a distinct per-request credential.
+            async with httpx2.AsyncClient(
+                headers={"Host": "mcp.example.invalid", "Authorization": "Bearer " + KEY_B}
+            ) as http:
+                async with Client(
+                    streamable_http_client(url, http_client=http), mode=mode
+                ) as client:
+                    await check_ranked_queries(client, "202")
+                    assert not any(
+                        key == KEY_B and "/servers/101" in path for key, path in api.calls
+                    )
             async with httpx2.AsyncClient(headers={"Host": "mcp.example.invalid"}) as http:
 
                 async def rpc(key: str) -> httpx2.Response:
@@ -129,6 +166,7 @@ async def exercise() -> dict[str, Any]:
         "missing_evidence_visible": True,
         "recommendation_workflow": True,
         "current_query_windows": True,
+        "normalized_queries": True,
         "dependency_failure_visible": True,
         "data": "synthetic only",
         "transport": "loopback TCP",

@@ -9,7 +9,9 @@ from pydantic import ValidationError
 
 from ..api.client import APIError, ReleemClient
 from ..api.models import Details, Report, Server
+from ..api.query_models import QueryRecord
 from ..api.schema_models import SchemaSnapshot
+from .analytics_sql import add_normalized_queries
 from .check_reports import apply_report
 from .check_summaries import apply_summary
 from .inputs import FindingsInput, InventoryInput
@@ -61,9 +63,17 @@ class Diagnostics:
             )
         return DiagnosticResult(status="error", error=failure, coverage=Coverage(complete=False))
 
-    def finish(self, result: DiagnosticResult) -> DiagnosticResult:
+    def finish(
+        self, result: DiagnosticResult, *, analytics_records: list[QueryRecord] | None = None
+    ) -> DiagnosticResult:
         redactor = Redactor(self.client.settings.token.get_secret_value())
-        result.data = redactor.clean(result.data)
+        if analytics_records is None:
+            result.data = redactor.clean(result.data)
+        else:
+            assert result.data is not None
+            # Analytics top-level keys are fixed by the adapter. Clean all source values first.
+            result.data = {key: redactor.clean(value) for key, value in result.data.items()}
+            add_normalized_queries(result.data["items"], analytics_records, redactor, result)
         result.redaction["changed_text_fields"] = redactor.changed
         result.warn(
             "fields_minimized", "Sensitive fields and unreviewed detail payloads are omitted"

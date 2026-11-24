@@ -11,6 +11,7 @@ class QueryRecord(UpstreamModel):
     rid: str
     schema_name: str
     query_id: str
+    query: str | None = Field(default=None, exclude=True, repr=False)
     calls: float | None = None
     avg_time_ms: float | None = None
     sum_time_sec: float | None = None

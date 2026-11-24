@@ -2,6 +2,9 @@
 
 ## 0.1.0 — unreleased private pilot
 
+- Add `query` and `query_status` to ranked query analytics rows so clients can
+  show screened, upstream-normalized SQL alongside the fingerprint and metrics,
+  label truncated prefixes and explain missing text.
 - Accept the API's `instance_type` code object during inventory validation,
   preserving its original id/name and legacy string values. Prevent valid keys
   from failing hosted MCP startup when the API returns the new object shape.

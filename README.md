@@ -6,7 +6,7 @@ Releem MCP gives developers, DevOps engineers, and database administrators read-
 - **Explore database performance.** Compare collected metrics across time windows or find the queries that accounted for the most execution time.
 - **Investigate incidents.** Build a timeline from recorded events, configuration changes, and metrics to narrow down possible root causes.
 
-The [quickstart](#connect-a-client) uses data collected by Releem to find the five query fingerprints with the most cumulative execution time over the past 24 hours.
+The [quickstart](#connect-a-client) uses Releem data to find the five queries with the most cumulative execution time over the past 24 hours and show their normalized SQL when available.
 
 <a name="detailed-guides"></a>
 
@@ -80,7 +80,7 @@ Reply with one returned server ID to select your target. An authenticated invent
 
 ### Rank queries on the selected server
 
-> For the server I selected, show the five query fingerprints with the most cumulative execution time over the past 24 hours. Include the returned time window, units, coverage and any evidence or freshness warnings the tools report.
+> For the server I selected, show the five queries with the most cumulative execution time over the past 24 hours. Show normalized SQL beside each fingerprint, with calls, total time and time share. Label partial prefixes. If text is missing, keep the row and explain why. Include the returned window, units, coverage and any evidence or freshness warnings.
 
 Read `sum_time_sec` for total execution time, `avg_time_ms` for the average per execution, and `calls` for the execution count. Percentages cover all matching queries in the returned UTC window.
 
@@ -258,7 +258,7 @@ Choose a server from your accessible inventory before asking about its diagnosti
 | Question | Tool |
 | --- | --- |
 | Which servers can I access? | `servers` lists IDs and metadata. Filter by exact `hostname` values or set `limit` (1–100, default 20). |
-| Which queries used the most time? | [`query_evidence`](#query-investigation) ranks fingerprints and retrieves existing proposals and plans. |
+| Which queries used the most time? | [`query_evidence`](#query-investigation) ranks queries, shows available normalized SQL and retrieves existing proposals and plans. |
 | What has Releem flagged? | [`server_findings`](#health-and-security-findings) reads health and security checks and optional [schema findings](#schema-findings). |
 | Why did Releem recommend a change? | [`recommendations`](#recommendation-evidence-and-fleet-scope) returns rationale, review history and available evidence. |
 | What changed in configuration or performance? | [`configurations` and `metrics`](#configuration-states-and-metrics) show recorded states, metric series and comparisons. |
@@ -272,10 +272,20 @@ For a guided investigation, see [diagnostic prompts](#diagnostic-prompts-and-ref
 
 | View | Inputs / bounds | Evidence |
 |---|---|---|
-| `analytics` (default) | Use a `period` such as `30m`, `24h` or `7d` (default `1d`, maximum 90 days). For explicit bounds use whole-second, offset-aware `start_date` and optional `end_date`. Limit 1–100, default 20. | Query fingerprints, calls, average latency, cumulative execution time and share of total time for the selected window and filters. |
+| `analytics` (default) | Use a `period` such as `30m`, `24h` or `7d` (default `1d`, maximum 90 days). For explicit bounds use whole-second, offset-aware `start_date` and optional `end_date`. Limit 1–100, default 20. | Upstream normalized SQL (`query`), its `query_status`, fingerprint (`query_id`), calls, average latency, cumulative execution time and share of total time. |
 | `proposals` | `schema_name` and `query_id` required; limit 1–100 locally | Existing proposals from the latest analysis containing them; no new analysis is created. |
 | `optimizations` | Optional schema filter; limit 1–100 | Newest saved optimization records, workflow status IDs and before/after measurements with original units. Unknown statuses retain their code. |
 | `optimization` | `optimization_id` required; no list filters | One same-server record, up to 20 matching linked proposals, existing plan availability and selected facts. |
+
+For ranked answers, read `structuredContent.data.items` and show `query` beside `query_id` and the measurements. Releem normalizes the SQL upstream, so identifiers can remain visible. Only this normalized field supplies excerpts. Raw `query_text` is omitted. Use the row’s `schema_name` and `query_id` to look up existing proposals.
+
+| `query_status` | What to show |
+| --- | --- |
+| `available` | The normalized statement. |
+| `truncated` | The returned prefix, labeled as partial. Each excerpt is limited to 2,048 UTF-8 bytes. |
+| `unavailable` | The fingerprint and metrics. Releem supplied no normalized text. |
+| `withheld` | The fingerprint and metrics. The statement did not pass screening. |
+| `budget_exhausted` | The fingerprint and metrics. The excerpt did not fit the space left in the ranking’s shared 8,192-byte text allowance. |
 
 Optimization status timestamps use Unix seconds. A zero `timestamp_status` means the time is unavailable.
 

@@ -33,6 +33,11 @@ def test_static_prompt_and_resource_discovery_and_rendering():
             for term in ["untrusted", "observations", "hypotheses", "freshness", "coverage"]:
                 assert term in text
             assert "No SQL execution" in text
+            if prompt.name == "investigate_queries":
+                assert "structuredContent.data.items" in text
+                assert "show query beside query_id" in text
+                assert "partial prefix" in text and "query_status" in text
+                assert "schema_name and query_id" in text
             assert len(text) < 6500
         resources = await server.list_resources()
         assert [str(item.uri) for item in resources] == ["releem://reference"]
@@ -47,6 +52,8 @@ def test_static_prompt_and_resource_discovery_and_rendering():
             "model",
             "hourly",
             "configuration_status_id",
+            "query_status=available",
+            "budget_exhausted",
         ]:
             assert term in content
         assert content == list(await server.read_resource("releem://reference"))[0].content

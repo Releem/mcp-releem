@@ -98,8 +98,8 @@ def query_records(records):
                         "sum_time_sec": 3.0,
                         "sum_time_perc_total": 25.0,
                         "sum_time_perc_first": 100.0,
-                        "query": "SELECT private_literal FROM customer",
-                        "query_text": "secret SQL",
+                        "query": "SELECT * FROM example_orders WHERE id = ?",
+                        "query_text": "SELECT * FROM example_orders WHERE id = 'raw-only-canary'",
                     }
                 ],
             },

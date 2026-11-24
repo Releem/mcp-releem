@@ -1,6 +1,7 @@
 import httpx2
 import pytest
 from test_diagnostics import run_with
+from test_foundation import module
 
 
 def test_analytics_preserves_window_units_nulls_and_denominator(query_records):
@@ -21,9 +22,59 @@ def test_analytics_preserves_window_units_nulls_and_denominator(query_records):
     row = result.data["items"][0]
     assert row["avg_time_ms"] is None and row["sum_time_sec"] == 3
     assert result.data["percentage_denominator"] == "all_queries_matching_filters"
-    assert "private_literal" not in result.model_dump_json()
-    assert "secret SQL" not in result.model_dump_json()
+    assert row["query"] == "SELECT * FROM example_orders WHERE id = ?"
+    assert row["query_id"] == "abc123" and row["query_status"] == "available"
+    assert "raw-only-canary" not in result.model_dump_json()
+    assert len(calls) == 1
     assert result.coverage.complete is False  # top query endpoint is capped, no upstream total
+
+
+def test_query_source_is_private_until_screened(query_records):
+    source = query_records["/v1/servers/101/query-analytics"]["items"][0]
+    record = module("api.query_models").QueryRecord.model_validate(source)
+    assert record.query == source["query"]
+    assert {"query", "query_text"}.isdisjoint(record.model_dump())
+    assert source["query"] not in repr(record)
+    assert source["query_text"] not in repr(record)
+
+
+@pytest.mark.parametrize("values", [{}, {"query": None}, {"query": " \r\n\t"}])
+def test_missing_normalized_query_preserves_statistics(query_records, values):
+    source = query_records["/v1/servers/101/query-analytics"]["items"][0]
+    del source["query"]
+    source.update(values)
+    result, calls = run_with(query_records, lambda s: s.query_evidence("101"))
+    row = result.data["items"][0]
+    assert row["query"] is None and row["query_status"] == "unavailable"
+    assert row["calls"] == 20 and row["query_id"] == "abc123"
+    assert result.status == "ok" and len(calls) == 1
+    assert "raw-only-canary" not in result.model_dump_json()
+
+
+def test_invalid_normalized_query_type_is_a_sanitized_upstream_error(query_records):
+    source = query_records["/v1/servers/101/query-analytics"]["items"][0]
+    source["query"] = {"bad": "malformed-query-canary"}
+    result, _ = run_with(query_records, lambda s: s.query_evidence("101"))
+    assert result.error.code == "invalid_source_data"
+    assert "malformed-query-canary" not in result.model_dump_json()
+
+
+def test_normalized_text_exception_applies_only_to_the_analytics_field(query_records):
+    source = query_records["/v1/servers/101/query-analytics"]["items"][0]
+    source["rid"] = source["query"]
+    result, _ = run_with(query_records, lambda s: s.query_evidence("101"))
+    row = result.data["items"][0]
+    assert row["query"] == source["query"] and row["rid"] == "[SQL-bearing text omitted]"
+    proposals = "/v1/servers/101/query-analytics/app db/abc123/recommendations"
+    query_records[proposals]["items"][0].update(query=source["query"], title=source["query"])
+    result, _ = run_with(
+        query_records,
+        lambda s: s.query_evidence(
+            "101", view="proposals", schema_name="app db", query_id="abc123"
+        ),
+    )
+    assert source["query"] not in result.model_dump_json()
+    assert "query_status" not in result.data["items"][0]
 
 
 def test_proposals_use_scoped_encoded_path_and_only_existing_plan_facts(query_records):

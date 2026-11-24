@@ -1,5 +1,5 @@
 import asyncio
-import importlib.util
+import importlib
 import sys
 from pathlib import Path
 
@@ -13,25 +13,32 @@ FIXTURE = ROOT / "tools/release/synthetic_stdio.py"
 READ_TIMEOUT_SECONDS = 15
 
 
-async def exercise(target, mode):
+@pytest.fixture
+def journey(monkeypatch):
+    monkeypatch.syspath_prepend(str(FIXTURE.parent))
+    return importlib.import_module("local_journey")
+
+
+async def exercise(target, mode, server_id, journey):
     async with Client(target, mode=mode, read_timeout_seconds=READ_TIMEOUT_SECONDS) as client:
         tools = await client.list_tools()
         assert len(tools.tools) == 10
         assert len((await client.list_prompts()).prompts) == 4
-        prompt = await client.get_prompt("why_database_slow", {"server_id": "101"})
-        assert "server_id=101" in prompt.messages[0].content.text
+        prompt = await client.get_prompt("why_database_slow", {"server_id": server_id})
+        assert f"server_id={server_id}" in prompt.messages[0].content.text
         reference = await client.read_resource("releem://reference")
         assert "hourly averages" in reference.contents[0].text
         result = await client.call_tool("servers", {"limit": 1})
-        assert result.structured_content["data"]["items"][0]["id"] == "101"
+        assert result.structured_content["data"]["items"][0]["id"] == server_id
         assert not result.is_error
         advertised = next(tool for tool in tools.tools if tool.name == "query_evidence")
         assert "period" in advertised.input_schema["properties"]
         assert "end_date" in advertised.input_schema["properties"]
-        for bounds in ({"period": "10m"}, {"period_days": 7}):
-            query = await client.call_tool("query_evidence", {"server_id": "101", **bounds})
-            assert not query.is_error
-            assert query.structured_content["data"]["window_bounds"] == "[start_time,end_time)"
+        await journey.check_ranked_queries(client, server_id)
+        empty = await client.call_tool("query_evidence", {"server_id": server_id, "period_days": 7})
+        assert not empty.is_error and empty.structured_content["status"] == "no_data"
+        assert empty.structured_content["data"]["items"] == []
+        assert empty.structured_content["data"]["window_bounds"] == "[start_time,end_time)"
         denied = await client.call_tool("execute_change", {})
         assert denied.is_error
         assert denied.structured_content["error"]["code"] == "operation_denied"
@@ -41,35 +48,30 @@ async def exercise(target, mode):
 
 
 @pytest.mark.parametrize("mode", ["legacy", "2026-07-28"])
-def test_stdio(mode):
+@pytest.mark.parametrize("server_id", ["101", "202"])
+def test_stdio(mode, server_id, journey):
     asyncio.run(
         exercise(
             StdioServerParameters(
                 command=sys.executable,
-                args=[str(FIXTURE)],
+                args=[str(FIXTURE), "--account", server_id],
                 env={"PYTHONPATH": str(ROOT / "src")},
             ),
             mode,
+            server_id,
+            journey,
         )
     )
 
 
-def test_authenticated_http_journey():
-    path = ROOT / "tools/release/local_journey.py"
-    sys.path.insert(0, str(path.parent))
-    try:
-        spec = importlib.util.spec_from_file_location("local_journey", path)
-        assert spec and spec.loader
-        journey = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(journey)
-        report = asyncio.run(journey.exercise())
-        assert report["protocol_modes"] == ["legacy", "2026-07-28"]
-        assert report["two_account_isolation"] is True
-        assert report["revocation"] is True
-        assert report["missing_evidence_visible"] is True
-        assert report["recommendation_workflow"] is True
-    finally:
-        sys.path.pop(0)
+def test_authenticated_http_journey(journey):
+    report = asyncio.run(journey.exercise())
+    assert report["protocol_modes"] == ["legacy", "2026-07-28"]
+    assert report["two_account_isolation"] is True
+    assert report["normalized_queries"] is True
+    assert report["revocation"] is True
+    assert report["missing_evidence_visible"] is True
+    assert report["recommendation_workflow"] is True
 
 
 @pytest.mark.parametrize("mode", ["legacy", "2026-07-28"])

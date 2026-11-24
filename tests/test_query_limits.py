@@ -1,8 +1,74 @@
 import json
 
+import httpx2
 import pytest
 from test_diagnostics import run_with
 from test_foundation import module
+
+ANALYTICS = "/v1/servers/101/query-analytics"
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        "synthetic-secret",
+        "-- comment",
+        "/* comment */",
+        "# comment",
+        "\x00",
+        "\u0085",
+        "\ud800",
+        "person@example.invalid",
+        "192.0.2.1",
+        "api_key=example",
+        "Bearer example",
+        "猫" * 5500,
+    ],
+)
+def test_screen_full_query_before_returning_any_prefix(query_records, suffix):
+    page = query_records[ANALYTICS]
+    page["items"][0]["query"] = "SELECT private_canary FROM orders " + " " * 2050 + suffix
+    # Escaped surrogate code points can occur in upstream JSON.
+    query_records[ANALYTICS] = httpx2.Response(200, content=json.dumps(page).encode())
+    result, _ = run_with(query_records, lambda s: s.query_evidence("101"))
+    row = result.data["items"][0]
+    assert row["query_status"] == "withheld" and row["query"] is None
+    assert row["calls"] == 20 and row["query_id"] == "abc123"
+    assert result.status == "partial" and result.coverage.omitted == 0
+    assert "query_text_limited" in {warning.code for warning in result.warnings}
+    assert "private_canary" not in result.model_dump_json()
+
+
+def test_query_text_byte_budgets_keep_ranked_rows(query_records):
+    items = query_records[ANALYTICS]["items"]
+    prefix = "SELECT " + "a" * 2039
+    sources = [prefix + "猫"] + ["a" * 2048] * 3 + ["abc", "é"]
+    items[:] = [dict(items[0], query_id=str(i), query=sql) for i, sql in enumerate(sources)]
+    result, _ = run_with(query_records, lambda s: s.query_evidence("101"))
+    rows = result.data["items"]
+    assert [row["query_id"] for row in rows] == [str(i) for i in range(len(sources))]
+    assert [row["query"] for row in rows] == [prefix, *sources[1:4], None, "é"]
+    assert [row["query_status"] for row in rows] == [
+        "truncated",
+        "available",
+        "available",
+        "available",
+        "budget_exhausted",
+        "available",
+    ]
+    assert sum(len((row["query"] or "").encode()) for row in rows) == 8192
+    assert result.status == "partial" and result.coverage.omitted == 0
+
+
+def test_envelope_budget_includes_normalized_queries(query_records):
+    items = query_records[ANALYTICS]["items"]
+    items[:] = [dict(items[0], query="SELECT " + "x" * 1000, query_id=str(i)) for i in range(4)]
+    result, _ = run_with(query_records, lambda s: s.query_evidence("101"), budget=4096)
+    assert len(result.model_dump_json().encode()) <= 4096
+    assert result.status == "partial" and "items" in result.coverage.truncated_fields
+    assert 0 < result.coverage.returned < 4
+    assert result.coverage.returned + result.coverage.omitted == 4
+    assert result.data["items"][0]["query"] == items[0]["query"]
 
 
 def test_linked_proposal_omissions_remain_visible(query_records):

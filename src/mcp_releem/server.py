@@ -261,7 +261,12 @@ def build_server(
         optimization_id: int | None = None,
         limit: int = 20,
     ) -> CallToolResult:
-        """Rank expensive queries or inspect existing proposals/optimizations; never submit SQL."""
+        """Rank queries or inspect saved proposals and optimizations.
+
+        In ranked answers, show the normalized query beside its query_id and metrics. Label a
+        truncated prefix, or explain missing text using query_status. Look up existing proposals
+        by schema_name and query_id.
+        """
         arguments: dict[str, Any] = {"view": view}
         if view == "analytics":
             arguments.update(

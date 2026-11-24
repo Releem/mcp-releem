@@ -61,7 +61,8 @@ class QueryDiagnostics:
             return self.context.error(
                 APIError("invalid_source_data", "Upstream query window is invalid")
             )
-        return self.context.finish(result)
+        records = response.items[: request.limit] if isinstance(response, AnalyticsPage) else None
+        return self.context.finish(result, analytics_records=records)
 
     def parameters(self, request: QueryInput) -> dict[str, Any]:
         common: dict[str, Any] = {"server_id": request.server_id}
